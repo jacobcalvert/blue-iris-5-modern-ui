@@ -5618,8 +5618,7 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
     try {
       const dashboard = await state.client.loadDashboard(requestOptions);
       applyDashboardData(dashboard);
-      renderAll();
-      if (!initial) showToast("Dashboard refreshed", "Camera, alert, recording, and system data are up to date.");
+      renderAll({ preserveCameraGrid: !initial });
     } catch (error) {
       if (error?.code === "session") {
         showToast("Session ended", "Sign in again to continue.", "error");
@@ -5661,9 +5660,9 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
     })).sort((a, b) => Number(b.date || 0) - Number(a.date || 0));
   }
 
-  function renderAll() {
+  function renderAll(options = {}) {
     renderFilters();
-    renderCameraGrid();
+    renderCameraGrid({ preserveExisting: options.preserveCameraGrid === true });
     renderAlerts();
     renderClips();
     renderSystem();
@@ -5709,7 +5708,82 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
     );
   }
 
-  function renderCameraGrid() {
+  function cameraCardState(camera) {
+    const online = camera.isOnline !== false && !camera.isNoSignal;
+    const status = !online ? "Offline" : camera.isTriggered ? "Triggered" : "Live";
+    const statusClass = !online ? "" : camera.isTriggered ? "status-chip--alert" : "status-chip--online";
+    const recording = camera.isRecording || camera.isManRec;
+    const resolution = camera.width && camera.height ? `${camera.width} \u00d7 ${camera.height}` : "Resolution n/a";
+    const subtitle = !online ? (camera.error || "No signal") : `${Number(camera.FPS || 0).toFixed(0)} FPS \u00b7 ${resolution}`;
+    return { online, status, statusClass, recording, subtitle };
+  }
+
+  function cameraCardMarkup(camera) {
+    const view = cameraCardState(camera);
+    return `
+      <article class="camera-card${view.online ? "" : " is-offline"}" tabindex="0" role="button"
+        data-camera-id="${escapeHtml(camera.optionValue)}" aria-label="Open ${escapeHtml(camera.optionDisplay)}">
+        <div class="camera-card__media">
+          <img src="${escapeHtml(state.client.imageUrl(camera.optionValue, 900))}"
+            alt="Live view from ${escapeHtml(camera.optionDisplay)}" data-camera="${escapeHtml(camera.optionValue)}">
+          <div class="camera-card__top">
+            <span class="status-chip ${view.statusClass}"><span></span>${escapeHtml(view.status)}</span>
+            <div class="camera-card__badges">
+              ${camera.audio ? `<span class="camera-card__badge" title="Audio">${icon("volume")}</span>` : ""}
+              ${view.recording ? `<span class="camera-card__badge camera-card__badge--record" title="Recording">${icon("record")}</span>` : ""}
+            </div>
+          </div>
+          ${view.online ? "" : `<div class="camera-card__offline">${icon("alert")}<span>No signal</span></div>`}
+        </div>
+        <div class="camera-card__footer">
+          <div class="camera-card__title">
+            <strong>${escapeHtml(camera.optionDisplay)}</strong>
+            <span>${escapeHtml(view.subtitle)}</span>
+          </div>
+          <div class="camera-card__stats">
+            ${camera.ptz ? `<span>PTZ</span>` : ""}
+            ${Number(camera.newalerts || 0) ? `<span>${Number(camera.newalerts)} new</span>` : `<span>${view.recording ? "REC" : "Ready"}</span>`}
+          </div>
+        </div>
+      </article>
+    `;
+  }
+
+  function updateCameraCard(card, camera) {
+    const view = cameraCardState(camera);
+    card.classList.toggle("is-offline", !view.online);
+    card.setAttribute("aria-label", `Open ${camera.optionDisplay}`);
+
+    const image = card.querySelector("img[data-camera]");
+    image.dataset.camera = camera.optionValue;
+    image.alt = `Live view from ${camera.optionDisplay}`;
+
+    const status = card.querySelector(".status-chip");
+    status.className = `status-chip ${view.statusClass}`;
+    status.innerHTML = `<span></span>${escapeHtml(view.status)}`;
+
+    card.querySelector(".camera-card__badges").innerHTML = `
+      ${camera.audio ? `<span class="camera-card__badge" title="Audio">${icon("volume")}</span>` : ""}
+      ${view.recording ? `<span class="camera-card__badge camera-card__badge--record" title="Recording">${icon("record")}</span>` : ""}
+    `;
+
+    const media = card.querySelector(".camera-card__media");
+    const offline = card.querySelector(".camera-card__offline");
+    if (!view.online && !offline) {
+      media.insertAdjacentHTML("beforeend", `<div class="camera-card__offline">${icon("alert")}<span>No signal</span></div>`);
+    } else if (view.online && offline) {
+      offline.remove();
+    }
+
+    card.querySelector(".camera-card__title strong").textContent = camera.optionDisplay;
+    card.querySelector(".camera-card__title span").textContent = view.subtitle;
+    card.querySelector(".camera-card__stats").innerHTML = `
+      ${camera.ptz ? "<span>PTZ</span>" : ""}
+      ${Number(camera.newalerts || 0) ? `<span>${Number(camera.newalerts)} new</span>` : `<span>${view.recording ? "REC" : "Ready"}</span>`}
+    `;
+  }
+
+  function renderCameraGrid(options = {}) {
     const cameras = camerasForCurrentGroup();
     const onlineCount = cameras.filter((camera) => camera.isOnline !== false && !camera.isNoSignal).length;
     const currentGroup = state.groups.find((group) => group.optionValue === state.selectedGroup);
@@ -5727,42 +5801,18 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
       return;
     }
 
-    el.cameraGrid.innerHTML = cameras.map((camera) => {
-      const online = camera.isOnline !== false && !camera.isNoSignal;
-      const status = !online ? "Offline" : camera.isTriggered ? "Triggered" : "Live";
-      const statusClass = !online ? "" : camera.isTriggered ? "status-chip--alert" : "status-chip--online";
-      const recording = camera.isRecording || camera.isManRec;
-      const resolution = camera.width && camera.height ? `${camera.width} \u00d7 ${camera.height}` : "Resolution n/a";
-      const subtitle = !online ? (camera.error || "No signal") : `${Number(camera.FPS || 0).toFixed(0)} FPS \u00b7 ${resolution}`;
+    const currentCards = Array.from(el.cameraGrid.children)
+      .filter((card) => card.matches(".camera-card[data-camera-id]"));
+    const canPreserve =
+      options.preserveExisting === true &&
+      currentCards.length === cameras.length &&
+      currentCards.every((card, index) => card.dataset.cameraId === cameras[index].optionValue);
 
-      return `
-        <article class="camera-card${online ? "" : " is-offline"}" tabindex="0" role="button"
-          data-camera-id="${escapeHtml(camera.optionValue)}" aria-label="Open ${escapeHtml(camera.optionDisplay)}">
-          <div class="camera-card__media">
-            <img src="${escapeHtml(state.client.imageUrl(camera.optionValue, 900))}"
-              alt="Live view from ${escapeHtml(camera.optionDisplay)}" data-camera="${escapeHtml(camera.optionValue)}">
-            <div class="camera-card__top">
-              <span class="status-chip ${statusClass}"><span></span>${escapeHtml(status)}</span>
-              <div class="camera-card__badges">
-                ${camera.audio ? `<span class="camera-card__badge" title="Audio">${icon("volume")}</span>` : ""}
-                ${recording ? `<span class="camera-card__badge camera-card__badge--record" title="Recording">${icon("record")}</span>` : ""}
-              </div>
-            </div>
-            ${online ? "" : `<div class="camera-card__offline">${icon("alert")}<span>No signal</span></div>`}
-          </div>
-          <div class="camera-card__footer">
-            <div class="camera-card__title">
-              <strong>${escapeHtml(camera.optionDisplay)}</strong>
-              <span>${escapeHtml(subtitle)}</span>
-            </div>
-            <div class="camera-card__stats">
-              ${camera.ptz ? `<span>PTZ</span>` : ""}
-              ${Number(camera.newalerts || 0) ? `<span>${Number(camera.newalerts)} new</span>` : `<span>${recording ? "REC" : "Ready"}</span>`}
-            </div>
-          </div>
-        </article>
-      `;
-    }).join("");
+    if (canPreserve) {
+      currentCards.forEach((card, index) => updateCameraCard(card, cameras[index]));
+    } else {
+      el.cameraGrid.innerHTML = cameras.map(cameraCardMarkup).join("");
+    }
     if (state.gridAudioEnabled) syncGridAudio();
     updateGridAudioControls();
   }
@@ -5934,16 +5984,56 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
     return Number(match[1]) * (units[(match[2] || "GB").toUpperCase()] || 1);
   }
 
+  function parseMemoryBytes(value, assumeBytes = false) {
+    if (value === null || value === undefined || value === "") return 0;
+    if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+
+    const match = String(value).trim().replace(/,/g, "").match(/^([\d.]+)\s*([KMGT]?I?B|[KMGT])?$/i);
+    if (!match) return 0;
+    const amount = Number(match[1]);
+    const unit = String(match[2] || (assumeBytes ? "B" : "GB")).toUpperCase();
+    const multipliers = {
+      B: 1,
+      K: 1024,
+      KB: 1024,
+      KIB: 1024,
+      M: 1048576,
+      MB: 1048576,
+      MIB: 1048576,
+      G: 1073741824,
+      GB: 1073741824,
+      GIB: 1073741824,
+      T: 1099511627776,
+      TB: 1099511627776,
+      TIB: 1099511627776
+    };
+    return Number.isFinite(amount) ? amount * (multipliers[unit] || 1) : 0;
+  }
+
+  function systemMemoryDisplay(status) {
+    const ramBytes = parseMemoryBytes(status.ram, true);
+    const bytes = ramBytes || parseMemoryBytes(status.mem);
+    if (!bytes) return { value: "\u2014", tooltip: "" };
+
+    const gigabytes = bytes / 1073741824;
+    const megabytes = bytes / 1048576;
+    return {
+      value: `${gigabytes.toFixed(gigabytes >= 10 ? 1 : 2)} GB`,
+      tooltip: `${Math.round(megabytes).toLocaleString()} MB`
+    };
+  }
+
   function renderSystem() {
     const status = state.status || {};
     const cpu = parsePercent(status.cpu);
     const memory = parsePercent(status.memload);
+    const memoryDisplay = systemMemoryDisplay(status);
     const online = state.cameras.filter((camera) => camera.isOnline !== false && !camera.isNoSignal).length;
     const cameraPercent = state.cameras.length ? Math.round((online / state.cameras.length) * 100) : 0;
 
     const metrics = [
       { label: "CPU load", value: `${cpu}%`, bar: cpu, icon: "pulse", detail: cpu < 70 ? "Operating normally" : "Elevated utilization" },
-      { label: "Memory", value: status.ram || status.mem || "\u2014", bar: memory, icon: "server", detail: status.memload ? `${status.memload} physical memory used` : "Blue Iris process" },
+      { label: "Memory", value: memoryDisplay.value, tooltip: memoryDisplay.tooltip, bar: memory, icon: "server", detail: status.memload ? `${status.memload} physical memory used` : "Blue Iris process" },
       { label: "Connections", value: String(status.cxns ?? "\u2014"), bar: Math.min(100, Number(status.cxns || 0) * 8), icon: "user", detail: "Active server connections" },
       { label: "Cameras online", value: `${online}/${state.cameras.length}`, bar: cameraPercent, icon: "camera", detail: `${cameraPercent}% available` }
     ];
@@ -5951,7 +6041,7 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
     el.healthMetrics.innerHTML = metrics.map((metric) => `
       <article class="metric-card">
         <div class="metric-card__top"><span>${escapeHtml(metric.label)}</span>${icon(metric.icon)}</div>
-        <strong>${escapeHtml(metric.value)}</strong>
+        <strong${metric.tooltip ? ` title="${escapeHtml(metric.tooltip)}" tabindex="0" aria-label="${escapeHtml(`${metric.label}: ${metric.value}; ${metric.tooltip}`)}"` : ""}>${escapeHtml(metric.value)}</strong>
         <div class="metric-card__bar"><span style="width:${metric.bar}%"></span></div>
         <small>${escapeHtml(metric.detail)}</small>
       </article>
