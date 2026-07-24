@@ -102,8 +102,12 @@
       state.gridVolume = clampVolume(saved.gridVolume, state.gridVolume);
       state.liveVolume = clampVolume(saved.liveVolume, state.liveVolume);
       state.recordingVolume = clampVolume(saved.recordingVolume, state.recordingVolume);
-      const defaultServer = window.location.protocol === "http:" || window.location.protocol === "https:"
-        ? window.location.origin
+      const isWebPage = window.location.protocol === "http:" || window.location.protocol === "https:";
+      const isBlueIrisLoginPage = /\/login\.html?$/i.test(window.location.pathname);
+      const defaultServer = isWebPage
+        ? (isBlueIrisLoginPage
+            ? window.normalizeBlueIrisUrl(window.location.href)
+            : window.location.origin)
         : "http://localhost:81";
       el.serverInput.value = saved.server || defaultServer;
       el.usernameInput.value = saved.username || "";
@@ -591,7 +595,13 @@
     } catch {
       return false;
     }
-    if (client.baseUrl !== cached.server) return false;
+    let cachedBaseUrl;
+    try {
+      cachedBaseUrl = window.normalizeBlueIrisUrl(cached.server);
+    } catch {
+      return false;
+    }
+    if (client.baseUrl !== cachedBaseUrl) return false;
 
     showLoginError("");
     setLoginLoading(true, "Restoring session…");

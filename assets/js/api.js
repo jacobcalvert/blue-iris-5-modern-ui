@@ -24,6 +24,11 @@
     if (!/^https?:$/.test(url.protocol)) {
       throw new BlueIrisError("Use an HTTP or HTTPS Blue Iris server address.", "invalid_url");
     }
+    url.search = "";
+    url.hash = "";
+    url.pathname = url.pathname
+      .replace(/\/(?:login|xlogin|default|ui3|index)\.html?\/?$/i, "/")
+      .replace(/\/+$/, "");
     return url.href.replace(/\/+$/, "");
   }
 
@@ -37,6 +42,14 @@
 
   function appendPath(baseUrl, path) {
     return `${baseUrl}/${String(path).replace(/^\/+/, "")}`;
+  }
+
+  function apiBaseCandidates(baseUrl) {
+    const normalized = normalizeBaseUrl(baseUrl);
+    const url = new URL(normalized);
+    const candidates = [normalized];
+    if (url.pathname && url.pathname !== "/") candidates.push(url.origin);
+    return [...new Set(candidates)];
   }
 
   function encodeMediaPath(value) {
@@ -63,20 +76,32 @@
       this.username = "";
       this.permissions = {};
       this.timeout = options.timeout || 14000;
-      this.isSameOrigin = window.location.protocol !== "file:" && new URL(this.baseUrl).origin === window.location.origin;
+      this.apiBaseUrl = null;
+      this.apiCandidates = apiBaseCandidates(this.baseUrl);
     }
 
-    async post(body, allowFailure = false) {
+    isSameOrigin(baseUrl = this.baseUrl) {
+      return window.location.protocol !== "file:" && new URL(baseUrl).origin === window.location.origin;
+    }
+
+    useResolvedBaseUrl(baseUrl) {
+      this.apiBaseUrl = baseUrl;
+      this.baseUrl = baseUrl;
+      this.serverName = new URL(baseUrl).host;
+    }
+
+    async postToBase(baseUrl, body, allowFailure = false) {
       const controller = new AbortController();
       const timeoutId = window.setTimeout(() => controller.abort(), this.timeout);
       let response;
+      const endpoint = appendPath(baseUrl, "json");
 
       try {
-        response = await fetch(appendPath(this.baseUrl, "json"), {
+        response = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "text/plain" },
           body: JSON.stringify(body),
-          credentials: this.isSameOrigin ? "same-origin" : "omit",
+          credentials: this.isSameOrigin(baseUrl) ? "same-origin" : "omit",
           cache: "no-store",
           signal: controller.signal
         });
@@ -84,7 +109,7 @@
         if (error.name === "AbortError") {
           throw new BlueIrisError("The Blue Iris server did not respond in time.", "timeout", error);
         }
-        const crossOrigin = !this.isSameOrigin;
+        const crossOrigin = !this.isSameOrigin(baseUrl);
         const hint = crossOrigin
           ? " Confirm the server is reachable, allows browser cross-origin requests, and uses a compatible HTTP/HTTPS scheme."
           : " Confirm the Blue Iris web server is running and the address is correct.";
@@ -96,15 +121,30 @@
       if (!response.ok) {
         throw new BlueIrisError(
           `Blue Iris returned HTTP ${response.status} ${response.statusText}.`,
-          `http_${response.status}`
+          `http_${response.status}`,
+          { endpoint, responseUrl: response.url }
         );
       }
 
+      const responseUrl = String(response.url || "");
+      const redirectedToLogin = response.redirected && /\/login\.html?(?:[?#]|$)/i.test(responseUrl);
+      const contentType = String(response.headers.get("content-type") || "").toLowerCase();
+      const responseText = await response.text();
       let data;
       try {
-        data = await response.json();
+        data = JSON.parse(responseText);
       } catch (error) {
-        throw new BlueIrisError("Blue Iris returned a response that was not valid JSON.", "invalid_response", error);
+        const looksLikeLoginPage =
+          redirectedToLogin ||
+          contentType.includes("text/html") ||
+          /<(?:!doctype\s+html|html|form)\b|blue\s+iris\s+login/i.test(responseText.slice(0, 1200));
+        throw new BlueIrisError(
+          looksLikeLoginPage
+            ? `The JSON endpoint at ${endpoint} redirected to the Blue Iris login page.`
+            : `The Blue Iris endpoint at ${endpoint} did not return JSON.`,
+          looksLikeLoginPage ? "login_redirect" : "invalid_response",
+          { endpoint, responseUrl, cause: error }
+        );
       }
 
       if (!allowFailure && String(data?.result).toLowerCase() === "fail") {
@@ -116,6 +156,29 @@
         throw new BlueIrisError(reason, sessionRejected ? "session" : "api_failure", data);
       }
       return data;
+    }
+
+    async post(body, allowFailure = false) {
+      const candidates = this.apiBaseUrl ? [this.apiBaseUrl] : this.apiCandidates;
+      let lastError = null;
+
+      for (let index = 0; index < candidates.length; index += 1) {
+        const candidate = candidates[index];
+        try {
+          const data = await this.postToBase(candidate, body, allowFailure);
+          this.useResolvedBaseUrl(candidate);
+          return data;
+        } catch (error) {
+          lastError = error;
+          const canTryNext =
+            !this.apiBaseUrl &&
+            index < candidates.length - 1 &&
+            ["http_404", "invalid_response", "login_redirect"].includes(error?.code);
+          if (!canTryNext) throw error;
+        }
+      }
+
+      throw lastError || new BlueIrisError("Could not locate the Blue Iris JSON API.", "api_not_found");
     }
 
     async login(username, password) {

@@ -2,7 +2,7 @@
   "name": "Blue Iris Mobile",
   "short_name": "BI Mobile",
   "description": "A modern, responsive Blue Iris 5 web client.",
-  "start_url": "./",
+  "start_url": "./login.htm",
   "display": "standalone",
   "background_color": "#090d15",
   "theme_color": "#090d15",
