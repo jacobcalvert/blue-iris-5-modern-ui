@@ -260,7 +260,9 @@
         clip: `@demo-clip-${index}.bvr`,
         offset: index * 120000,
         res: index % 2 ? "2560x1440" : "1920x1080",
-        flags: (index < 3 ? 1 : 0) | 65536,
+        // Keep one alert without the offset-ms flag so demo exports exercise the
+        // same source-selection fallback used by older/migrated database entries.
+        flags: (index < 3 ? 1 : 0) | (index === 0 ? 0 : 65536),
         trigger: type,
         filetype: "bvr H264",
         filesize: `${12 + index} sec (${3 + index}.2M)`,
@@ -334,6 +336,9 @@
           }
           return clone(existing);
         }
+        if (!/\.bvr$/i.test(String(payload.path || ""))) {
+          throw new Error("Clip not BVR");
+        }
         const path = `@demo-export-${Date.now()}.mp4`;
         const job = {
           path,
@@ -394,7 +399,15 @@
     }
 
     queueExport(path, options = {}) {
-      return this.request("export", { path, format: 1, audio: true, ...options });
+      return this.request("export", {
+        path,
+        format: 1,
+        profile: 0,
+        audio: true,
+        reencode: true,
+        overlay: true,
+        ...options
+      });
     }
 
     exportStatus(path) {

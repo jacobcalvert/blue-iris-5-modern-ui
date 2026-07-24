@@ -382,6 +382,12 @@
     return [item?.path, item?.clip, item?.offset].map((value) => String(value ?? "")).join("|");
   }
 
+  function alertExportSourcePath(item) {
+    const referencedClip = String(item?.clip || "").trim();
+    if (referencedClip && !referencedClip.startsWith("@-1.")) return referencedClip;
+    return String(item?.path || "").trim();
+  }
+
   function normalizeExportStatus(response, path) {
     if (Array.isArray(response)) {
       return response.find((item) => item?.path === path) || response[0] || {};
@@ -524,11 +530,11 @@
 
     const duration = recordingLengthMs(item);
     const hasReliableOffset = (Number(item.flags || 0) & ALERT_OFFSET_MS_FLAG) !== 0;
-    const sourcePath = hasReliableOffset
-      ? String(item.clip || item.path || "")
-      : String(item.path || item.clip || "");
+    // alertlist.path identifies the alert database record. Blue Iris export expects
+    // the underlying recording from alertlist.clip, regardless of offset precision.
+    const sourcePath = alertExportSourcePath(item);
     if (!sourcePath) {
-      showToast("Export unavailable", "Blue Iris did not provide a database path for this alert.", "error");
+      showToast("Export unavailable", "Blue Iris did not provide the recording referenced by this alert.", "error");
       return;
     }
 
@@ -536,6 +542,11 @@
     if (hasReliableOffset && duration > 0) {
       exportOptions.startms = Math.max(0, Math.floor(Number(item.offset || 0)));
       exportOptions.msec = duration;
+    } else if (duration > 0) {
+      // Match UI3's safe fallback when the alert offset is not explicitly marked
+      // as milliseconds: export from the clip start through the end of the alert.
+      exportOptions.startms = 0;
+      exportOptions.msec = Math.max(duration, Math.floor(Number(item.offset || 0)) + duration);
     }
 
     const job = {

@@ -4029,7 +4029,9 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
         clip: `@demo-clip-${index}.bvr`,
         offset: index * 120000,
         res: index % 2 ? "2560x1440" : "1920x1080",
-        flags: (index < 3 ? 1 : 0) | 65536,
+        // Keep one alert without the offset-ms flag so demo exports exercise the
+        // same source-selection fallback used by older/migrated database entries.
+        flags: (index < 3 ? 1 : 0) | (index === 0 ? 0 : 65536),
         trigger: type,
         filetype: "bvr H264",
         filesize: `${12 + index} sec (${3 + index}.2M)`,
@@ -4103,6 +4105,9 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
           }
           return clone(existing);
         }
+        if (!/\.bvr$/i.test(String(payload.path || ""))) {
+          throw new Error("Clip not BVR");
+        }
         const path = `@demo-export-${Date.now()}.mp4`;
         const job = {
           path,
@@ -4163,7 +4168,15 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
     }
 
     queueExport(path, options = {}) {
-      return this.request("export", { path, format: 1, audio: true, ...options });
+      return this.request("export", {
+        path,
+        format: 1,
+        profile: 0,
+        audio: true,
+        reencode: true,
+        overlay: true,
+        ...options
+      });
     }
 
     exportStatus(path) {
@@ -4342,7 +4355,14 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
       }
 
       if (!allowFailure && String(data?.result).toLowerCase() === "fail") {
-        const reason = data?.data?.reason || data?.reason || "The request was rejected by Blue Iris.";
+        const reason =
+          data?.data?.reason ||
+          data?.data?.status ||
+          data?.data?.error ||
+          data?.reason ||
+          data?.status ||
+          data?.error ||
+          "The request was rejected by Blue Iris.";
         const sessionRejected =
           /(?:invalid|missing|expired|unknown|no such)\s+session|session\s+(?:invalid|missing|expired|unknown)/i.test(reason) ||
           (Boolean(body?.session) && !data?.data && !data?.reason);
@@ -4533,7 +4553,7 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
         profile: 0,
         audio: true,
         reencode: true,
-        overlay: false,
+        overlay: true,
         ...options
       });
     }
@@ -5343,6 +5363,12 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
     return [item?.path, item?.clip, item?.offset].map((value) => String(value ?? "")).join("|");
   }
 
+  function alertExportSourcePath(item) {
+    const referencedClip = String(item?.clip || "").trim();
+    if (referencedClip && !referencedClip.startsWith("@-1.")) return referencedClip;
+    return String(item?.path || "").trim();
+  }
+
   function normalizeExportStatus(response, path) {
     if (Array.isArray(response)) {
       return response.find((item) => item?.path === path) || response[0] || {};
@@ -5485,11 +5511,11 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
 
     const duration = recordingLengthMs(item);
     const hasReliableOffset = (Number(item.flags || 0) & ALERT_OFFSET_MS_FLAG) !== 0;
-    const sourcePath = hasReliableOffset
-      ? String(item.clip || item.path || "")
-      : String(item.path || item.clip || "");
+    // alertlist.path identifies the alert database record. Blue Iris export expects
+    // the underlying recording from alertlist.clip, regardless of offset precision.
+    const sourcePath = alertExportSourcePath(item);
     if (!sourcePath) {
-      showToast("Export unavailable", "Blue Iris did not provide a database path for this alert.", "error");
+      showToast("Export unavailable", "Blue Iris did not provide the recording referenced by this alert.", "error");
       return;
     }
 
@@ -5497,6 +5523,11 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
     if (hasReliableOffset && duration > 0) {
       exportOptions.startms = Math.max(0, Math.floor(Number(item.offset || 0)));
       exportOptions.msec = duration;
+    } else if (duration > 0) {
+      // Match UI3's safe fallback when the alert offset is not explicitly marked
+      // as milliseconds: export from the clip start through the end of the alert.
+      exportOptions.startms = 0;
+      exportOptions.msec = Math.max(duration, Math.floor(Number(item.offset || 0)) + duration);
     }
 
     const job = {

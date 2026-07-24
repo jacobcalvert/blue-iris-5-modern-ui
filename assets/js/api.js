@@ -160,7 +160,14 @@
       }
 
       if (!allowFailure && String(data?.result).toLowerCase() === "fail") {
-        const reason = data?.data?.reason || data?.reason || "The request was rejected by Blue Iris.";
+        const reason =
+          data?.data?.reason ||
+          data?.data?.status ||
+          data?.data?.error ||
+          data?.reason ||
+          data?.status ||
+          data?.error ||
+          "The request was rejected by Blue Iris.";
         const sessionRejected =
           /(?:invalid|missing|expired|unknown|no such)\s+session|session\s+(?:invalid|missing|expired|unknown)/i.test(reason) ||
           (Boolean(body?.session) && !data?.data && !data?.reason);
@@ -351,7 +358,7 @@
         profile: 0,
         audio: true,
         reencode: true,
-        overlay: false,
+        overlay: true,
         ...options
       });
     }
