@@ -1752,12 +1752,7 @@
     state.recordingStartedAt = performance.now();
     state.recordingPlaying = true;
     el.recordingStream.removeAttribute("data-fallback-applied");
-    if (state.recordingKind === "alert") {
-      showRecordingFrame(state.recordingPositionMs);
-    } else {
-      state.recordingFramePending = false;
-      el.recordingStream.src = state.client.recordingUrl(state.activeRecording, state.recordingPositionMs);
-    }
+    showRecordingFrame(state.recordingPositionMs);
     startRecordingAudio(state.recordingPositionMs);
     updateRecordingPlayButton();
     updateRecordingAudioControls();
@@ -1766,7 +1761,7 @@
     state.recordingTimer = window.setInterval(() => {
       const positionNow = currentRecordingPosition();
       updateRecordingTimeline(positionNow);
-      if (state.recordingKind === "alert" && !state.recordingFramePending) {
+      if (!state.recordingFramePending) {
         showRecordingFrame(positionNow);
       }
       if (state.recordingDurationMs > 0 && positionNow >= state.recordingDurationMs) {
