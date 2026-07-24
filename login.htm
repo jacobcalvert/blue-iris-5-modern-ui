@@ -2161,12 +2161,31 @@ button {
 
 .recording-player__meta {
   position: absolute;
+  z-index: 2;
   inset: auto 15px 64px;
   display: flex;
+  align-items: flex-end;
   justify-content: space-between;
   color: rgba(232, 241, 247, 0.76);
   font-size: 0.65rem;
+  pointer-events: none;
   text-shadow: 0 1px 3px black;
+}
+
+.recording-player__timestamp {
+  color: #fff;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  letter-spacing: 0.015em;
+  line-height: 1;
+  text-shadow:
+    -1px -1px 0 #000,
+    1px -1px 0 #000,
+    -1px 1px 0 #000,
+    1px 1px 0 #000,
+    0 2px 5px #000;
 }
 
 .recording-controls {
@@ -3431,7 +3450,10 @@ button {
         <div class="modal-body recording-body">
           <div class="recording-player">
             <img id="recordingStream" alt="">
-            <div class="recording-player__meta"><span id="recordingTimestamp"></span><span id="recordingResolution"></span></div>
+            <div class="recording-player__meta">
+              <time id="recordingTimestamp" class="recording-player__timestamp" aria-label="Playback timestamp"></time>
+              <span id="recordingResolution"></span>
+            </div>
             <div class="recording-controls">
               <button id="recordingPlayToggle" class="icon-button" type="button" aria-label="Pause recording">
                 <svg class="icon"><use href="#i-pause"/></svg>
@@ -5146,6 +5168,18 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
     return new Intl.DateTimeFormat(undefined, options).format(date);
   }
 
+  function formatPlaybackTimestamp(value) {
+    const date = value instanceof Date ? value : toDate(value);
+    return new Intl.DateTimeFormat(undefined, {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit"
+    }).format(date);
+  }
+
   function formatDateTimeLocal(date) {
     const value = date instanceof Date ? date : new Date(date);
     const pad = (number) => String(number).padStart(2, "0");
@@ -6606,6 +6640,13 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
     const safePosition = Math.max(0, Number(position) || 0);
     el.recordingCurrentTime.textContent = formatDuration(safePosition);
     el.recordingDuration.textContent = formatDuration(state.recordingDurationMs);
+    if (state.activeRecording) {
+      const playbackDate = new Date(toDate(state.activeRecording.date).getTime() + safePosition);
+      const timestamp = formatPlaybackTimestamp(playbackDate);
+      el.recordingTimestamp.textContent = timestamp;
+      el.recordingTimestamp.dateTime = playbackDate.toISOString();
+      el.recordingTimestamp.setAttribute("aria-label", `Playback timestamp ${timestamp}`);
+    }
     if (state.recordingDurationMs > 0) {
       el.recordingSeek.value = String(Math.min(state.recordingDurationMs, safePosition));
     }
@@ -6795,7 +6836,6 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
     el.recordingCameraName.textContent = item.cameraName;
     el.recordingTypeLabel.innerHTML = `<span></span>${kind === "alert" ? "Alert playback" : "Recording"}`;
     el.recordingTypeLabel.className = `status-chip ${kind === "alert" ? "status-chip--alert" : "status-chip--online"}`;
-    el.recordingTimestamp.textContent = formatDateTime(item.date);
     el.recordingResolution.textContent = item.res || "";
     el.recordingStream.alt = title;
     const isSnapshotAlert = kind === "alert" && !hasPlayableRecording(item);

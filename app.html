@@ -485,7 +485,10 @@
         <div class="modal-body recording-body">
           <div class="recording-player">
             <img id="recordingStream" alt="">
-            <div class="recording-player__meta"><span id="recordingTimestamp"></span><span id="recordingResolution"></span></div>
+            <div class="recording-player__meta">
+              <time id="recordingTimestamp" class="recording-player__timestamp" aria-label="Playback timestamp"></time>
+              <span id="recordingResolution"></span>
+            </div>
             <div class="recording-controls">
               <button id="recordingPlayToggle" class="icon-button" type="button" aria-label="Pause recording">
                 <svg class="icon"><use href="#i-pause"/></svg>

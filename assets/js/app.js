@@ -207,6 +207,18 @@
     return new Intl.DateTimeFormat(undefined, options).format(date);
   }
 
+  function formatPlaybackTimestamp(value) {
+    const date = value instanceof Date ? value : toDate(value);
+    return new Intl.DateTimeFormat(undefined, {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit"
+    }).format(date);
+  }
+
   function formatDateTimeLocal(date) {
     const value = date instanceof Date ? date : new Date(date);
     const pad = (number) => String(number).padStart(2, "0");
@@ -1667,6 +1679,13 @@
     const safePosition = Math.max(0, Number(position) || 0);
     el.recordingCurrentTime.textContent = formatDuration(safePosition);
     el.recordingDuration.textContent = formatDuration(state.recordingDurationMs);
+    if (state.activeRecording) {
+      const playbackDate = new Date(toDate(state.activeRecording.date).getTime() + safePosition);
+      const timestamp = formatPlaybackTimestamp(playbackDate);
+      el.recordingTimestamp.textContent = timestamp;
+      el.recordingTimestamp.dateTime = playbackDate.toISOString();
+      el.recordingTimestamp.setAttribute("aria-label", `Playback timestamp ${timestamp}`);
+    }
     if (state.recordingDurationMs > 0) {
       el.recordingSeek.value = String(Math.min(state.recordingDurationMs, safePosition));
     }
@@ -1856,7 +1875,6 @@
     el.recordingCameraName.textContent = item.cameraName;
     el.recordingTypeLabel.innerHTML = `<span></span>${kind === "alert" ? "Alert playback" : "Recording"}`;
     el.recordingTypeLabel.className = `status-chip ${kind === "alert" ? "status-chip--alert" : "status-chip--online"}`;
-    el.recordingTimestamp.textContent = formatDateTime(item.date);
     el.recordingResolution.textContent = item.res || "";
     el.recordingStream.alt = title;
     const isSnapshotAlert = kind === "alert" && !hasPlayableRecording(item);

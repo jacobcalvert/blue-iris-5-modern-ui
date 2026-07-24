@@ -2142,12 +2142,31 @@ button {
 
 .recording-player__meta {
   position: absolute;
+  z-index: 2;
   inset: auto 15px 64px;
   display: flex;
+  align-items: flex-end;
   justify-content: space-between;
   color: rgba(232, 241, 247, 0.76);
   font-size: 0.65rem;
+  pointer-events: none;
   text-shadow: 0 1px 3px black;
+}
+
+.recording-player__timestamp {
+  color: #fff;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  letter-spacing: 0.015em;
+  line-height: 1;
+  text-shadow:
+    -1px -1px 0 #000,
+    1px -1px 0 #000,
+    -1px 1px 0 #000,
+    1px 1px 0 #000,
+    0 2px 5px #000;
 }
 
 .recording-controls {
