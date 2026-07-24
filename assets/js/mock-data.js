@@ -324,16 +324,22 @@
         return clone(camera || {});
       }
       if (command === "export") {
+        if (!payload.path) {
+          this.exportJobs.forEach((job) => {
+            if (job.status === "done" || job.status === "error") return;
+            job.polls += 1;
+            if (job.polls >= 2) {
+              job.status = "done";
+              job.progress = 100;
+            } else {
+              job.status = "active";
+              job.progress = 54;
+            }
+          });
+          return clone([...this.exportJobs.values()]);
+        }
         const existing = this.exportJobs.get(payload.path);
         if (existing) {
-          existing.polls += 1;
-          if (existing.polls >= 2) {
-            existing.status = "done";
-            existing.progress = 100;
-          } else {
-            existing.status = "active";
-            existing.progress = 54;
-          }
           return clone(existing);
         }
         if (!/\.bvr$/i.test(String(payload.path || ""))) {
@@ -410,8 +416,8 @@
       });
     }
 
-    exportStatus(path) {
-      return this.request("export", { path });
+    exportStatus() {
+      return this.request("export");
     }
 
     exportDownloadUrl(uri) {

@@ -390,7 +390,8 @@
 
   function normalizeExportStatus(response, path) {
     if (Array.isArray(response)) {
-      return response.find((item) => item?.path === path) || response[0] || {};
+      if (path) return response.find((item) => item?.path === path) || {};
+      return response[0] || {};
     }
     return response && typeof response === "object" ? response : {};
   }
@@ -482,7 +483,7 @@
   async function pollAlertExport(job) {
     if (!state.client || job.status === "done" || job.status === "error") return;
     try {
-      const response = await state.client.exportStatus(job.path);
+      const response = await state.client.exportStatus();
       const status = normalizeExportStatus(response, job.path);
       job.status = String(status.status || job.status || "active").toLowerCase();
       job.progress = Number(status.progress || (job.status === "done" ? 100 : job.progress || 0));
@@ -569,6 +570,7 @@
       job.path = queued.path;
       job.status = String(queued.status || "queued").toLowerCase();
       job.progress = Number(queued.progress || 0);
+      job.uri = queued.uri || "";
       updateExportToast(job, job.status === "active" ? "Converting to MP4 with sound…" : "Queued on the Blue Iris server…");
       job.timer = window.setTimeout(() => pollAlertExport(job), 700);
     } catch (error) {

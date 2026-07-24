@@ -1819,10 +1819,14 @@ button {
 }
 
 .viewer-header {
+  align-items: center;
   background: rgba(11, 17, 26, 0.96);
+  display: flex;
+  width: 100%;
 }
 
 .viewer-header > div:first-child {
+  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -1835,7 +1839,10 @@ button {
 .viewer-header__actions {
   align-items: center;
   display: flex;
+  flex: 0 0 auto;
   gap: 8px;
+  justify-content: flex-end;
+  margin-left: auto;
 }
 
 .recording-export-button {
@@ -4093,16 +4100,22 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
         return clone(camera || {});
       }
       if (command === "export") {
+        if (!payload.path) {
+          this.exportJobs.forEach((job) => {
+            if (job.status === "done" || job.status === "error") return;
+            job.polls += 1;
+            if (job.polls >= 2) {
+              job.status = "done";
+              job.progress = 100;
+            } else {
+              job.status = "active";
+              job.progress = 54;
+            }
+          });
+          return clone([...this.exportJobs.values()]);
+        }
         const existing = this.exportJobs.get(payload.path);
         if (existing) {
-          existing.polls += 1;
-          if (existing.polls >= 2) {
-            existing.status = "done";
-            existing.progress = 100;
-          } else {
-            existing.status = "active";
-            existing.progress = 54;
-          }
           return clone(existing);
         }
         if (!/\.bvr$/i.test(String(payload.path || ""))) {
@@ -4179,8 +4192,8 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
       });
     }
 
-    exportStatus(path) {
-      return this.request("export", { path });
+    exportStatus() {
+      return this.request("export");
     }
 
     exportDownloadUrl(uri) {
@@ -4558,8 +4571,10 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
       });
     }
 
-    exportStatus(path) {
-      return this.request("export", { path });
+    exportStatus() {
+      // UI3 polls the export queue without a path. Sending the returned export
+      // product path back here can be interpreted as a new (non-BVR) source.
+      return this.request("export");
     }
 
     exportDownloadUrl(uri) {
@@ -5371,7 +5386,8 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
 
   function normalizeExportStatus(response, path) {
     if (Array.isArray(response)) {
-      return response.find((item) => item?.path === path) || response[0] || {};
+      if (path) return response.find((item) => item?.path === path) || {};
+      return response[0] || {};
     }
     return response && typeof response === "object" ? response : {};
   }
@@ -5463,7 +5479,7 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
   async function pollAlertExport(job) {
     if (!state.client || job.status === "done" || job.status === "error") return;
     try {
-      const response = await state.client.exportStatus(job.path);
+      const response = await state.client.exportStatus();
       const status = normalizeExportStatus(response, job.path);
       job.status = String(status.status || job.status || "active").toLowerCase();
       job.progress = Number(status.progress || (job.status === "done" ? 100 : job.progress || 0));
@@ -5550,6 +5566,7 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
       job.path = queued.path;
       job.status = String(queued.status || "queued").toLowerCase();
       job.progress = Number(queued.progress || 0);
+      job.uri = queued.uri || "";
       updateExportToast(job, job.status === "active" ? "Converting to MP4 with sound\u2026" : "Queued on the Blue Iris server\u2026");
       job.timer = window.setTimeout(() => pollAlertExport(job), 700);
     } catch (error) {

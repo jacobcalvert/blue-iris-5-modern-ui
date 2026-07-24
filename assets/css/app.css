@@ -1800,10 +1800,14 @@ button {
 }
 
 .viewer-header {
+  align-items: center;
   background: rgba(11, 17, 26, 0.96);
+  display: flex;
+  width: 100%;
 }
 
 .viewer-header > div:first-child {
+  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -1816,7 +1820,10 @@ button {
 .viewer-header__actions {
   align-items: center;
   display: flex;
+  flex: 0 0 auto;
   gap: 8px;
+  justify-content: flex-end;
+  margin-left: auto;
 }
 
 .recording-export-button {

@@ -363,8 +363,10 @@
       });
     }
 
-    exportStatus(path) {
-      return this.request("export", { path });
+    exportStatus() {
+      // UI3 polls the export queue without a path. Sending the returned export
+      // product path back here can be interpreted as a new (non-BVR) source.
+      return this.request("export");
     }
 
     exportDownloadUrl(uri) {
