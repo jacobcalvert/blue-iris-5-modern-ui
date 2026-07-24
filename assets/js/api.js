@@ -84,6 +84,18 @@
       return window.location.protocol !== "file:" && new URL(baseUrl).origin === window.location.origin;
     }
 
+    syncSessionCookie() {
+      if (!this.session || !this.isSameOrigin()) return;
+      const secure = window.location.protocol === "https:" ? "; Secure" : "";
+      document.cookie = `session=${encodeURIComponent(this.session)}; Path=/; SameSite=Lax${secure}`;
+    }
+
+    clearSessionCookie() {
+      if (!this.isSameOrigin()) return;
+      const secure = window.location.protocol === "https:" ? "; Secure" : "";
+      document.cookie = `session=; Path=/; Max-Age=0; SameSite=Lax${secure}`;
+    }
+
     useResolvedBaseUrl(baseUrl) {
       this.apiBaseUrl = baseUrl;
       this.baseUrl = baseUrl;
@@ -152,7 +164,10 @@
         const sessionRejected =
           /(?:invalid|missing|expired|unknown|no such)\s+session|session\s+(?:invalid|missing|expired|unknown)/i.test(reason) ||
           (Boolean(body?.session) && !data?.data && !data?.reason);
-        if (sessionRejected) this.session = null;
+        if (sessionRejected) {
+          this.session = null;
+          this.clearSessionCookie();
+        }
         throw new BlueIrisError(reason, sessionRejected ? "session" : "api_failure", data);
       }
       return data;
@@ -208,11 +223,13 @@
 
       if (String(result?.result).toLowerCase() !== "success") {
         this.session = null;
+        this.clearSessionCookie();
         const reason = result?.data?.reason || result?.reason || "The username or password was not accepted.";
         throw new BlueIrisError(reason, "authentication");
       }
 
       this.session = result.session || this.session;
+      this.syncSessionCookie();
       this.permissions = mergeLoginData(result.data);
       this.serverName =
         this.permissions.systemname ||
@@ -233,11 +250,13 @@
       const result = await this.post({ cmd: "login", session: this.session }, true);
       if (String(result?.result).toLowerCase() !== "success") {
         this.session = null;
+        this.clearSessionCookie();
         const reason = result?.data?.reason || result?.reason || "The saved Blue Iris session is invalid or expired.";
         throw new BlueIrisError(reason, "session", result);
       }
 
       this.session = result.session || this.session;
+      this.syncSessionCookie();
       const resumedPermissions = mergeLoginData(result.data);
       this.permissions = Object.keys(resumedPermissions).length
         ? resumedPermissions
@@ -273,11 +292,15 @@
     }
 
     async logout() {
-      if (!this.session) return;
+      if (!this.session) {
+        this.clearSessionCookie();
+        return;
+      }
       try {
         await this.post({ cmd: "logout", session: this.session }, true);
       } finally {
         this.session = null;
+        this.clearSessionCookie();
       }
     }
 

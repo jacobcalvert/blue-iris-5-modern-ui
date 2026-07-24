@@ -4,7 +4,8 @@ A responsive, static web client for Blue Iris 5. It includes one-second live cam
 
 ## Run locally
 
-The app has no build step and no runtime CDN dependencies. Serve this directory with any static HTTP server:
+The app has no runtime CDN dependencies. The checked-in `login.htm` is already built, so
+you can serve this directory with any static HTTP server:
 
 ```bash
 python3 -m http.server 8080
@@ -31,14 +32,27 @@ the virtual-directory endpoint returns 404 or HTML.
 
 ### Install in the Blue Iris WWW folder
 
-Copy the complete project into the configured Blue Iris WWW root. Back up the original
-Blue Iris `login.htm` first, then use this project's `login.htm` as the replacement entry
-page. Keep the `assets` directory and `manifest.webmanifest` beside it. Blue Iris treats
-`login.htm` as its unauthenticated entry point, allowing this application to load and perform
-the documented two-step JSON login itself.
+Back up the original Blue Iris `login.htm`, then copy this project's generated `login.htm`
+into the configured Blue Iris WWW root. Blue Iris protects ordinary static files before
+login, so this entry file contains its Bootstrap CSS, application CSS, JavaScript, icons, and
+demo images inline. It does not request a manifest or other application asset until a session
+exists. After a successful same-origin JSON login, the app also sets Blue Iris's standard
+`session` cookie so authenticated resource requests work normally.
 
 Blue Iris upgrades may restore the bundled login page, so keep this project available to
 copy back after an update.
+
+### Rebuild `login.htm`
+
+Edit `app.html` and the files under `assets`, then regenerate the deployable entry:
+
+```bash
+node scripts/build-login.mjs
+```
+
+The build fails if an external stylesheet, script, or manifest reference remains, or if the
+result contains non-ASCII text that Blue Iris could serve with the wrong encoding. Commit
+both the source changes and the regenerated `login.htm`.
 
 ### Remote-origin browser requirements
 
@@ -56,8 +70,10 @@ Choose **Explore demo dashboard** on the login screen to use the full interface 
 
 ## Files
 
-- `login.htm` - Blue Iris-compatible application shell, login form, and dialogs
+- `app.html` - source application shell, login form, and dialogs
+- `login.htm` - generated, self-contained Blue Iris login entry
 - `index.html` - static-server redirect to `login.htm`
+- `scripts/build-login.mjs` - bundles the application into `login.htm`
 - `assets/css/app.css` - responsive visual system
 - `assets/js/api.js` - Blue Iris JSON and media API client
 - `assets/js/app.js` - UI state and interaction logic
