@@ -35,6 +35,8 @@
     activeCamera: null,
     activeRecording: null,
     recordingKind: null,
+    recordingMediaOffsetMs: 0,
+    recordingMediaPath: "",
     refreshTimer: null,
     snapshotTimer: null,
     clockTimer: null,
@@ -948,7 +950,7 @@
       return;
     }
 
-    el.alertGrid.innerHTML = alerts.map((item, index) => {
+    el.alertGrid.innerHTML = alerts.map((item) => {
       const sourceIndex = state.alerts.indexOf(item);
       const exportJob = state.exportJobs.get(alertExportKey(item));
       const exportPending = exportJob && ["queued", "active"].includes(exportJob.status);
@@ -958,7 +960,7 @@
         aria-label="Open alert from ${escapeHtml(item.cameraName)}">
         <div class="event-card__media">
           <img src="${escapeHtml(state.client.thumbnailUrl(item))}" alt="Alert from ${escapeHtml(item.cameraName)}">
-          <span class="event-card__marker">${escapeHtml(item.trigger || (index % 3 === 1 ? "Vehicle" : "Motion"))}</span>
+          <span class="event-card__marker">${escapeHtml(item.trigger || "Alert")}</span>
           <span class="event-card__time">${escapeHtml(formatDateTime(item.date, false))}</span>
         </div>
         <div class="event-card__body">
@@ -1714,7 +1716,14 @@
       state.recordingVolume <= 0
     ) return;
     ensureRecordingAudioPlayer();
-    const source = state.client.clipAudioUrl(state.activeRecording, position);
+    const mediaItem = {
+      ...state.activeRecording,
+      playbackPath: state.recordingMediaPath
+    };
+    const source = state.client.clipAudioUrl(
+      mediaItem,
+      state.recordingMediaOffsetMs + Math.max(0, Number(position) || 0)
+    );
     if (source) state.recordingAudio?.start(source, state.recordingVolume);
   }
 
@@ -1727,9 +1736,16 @@
     if (!state.activeRecording || !hasPlayableRecording(state.activeRecording)) return;
     const maxPosition = state.recordingDurationMs > 0 ? Math.max(0, state.recordingDurationMs - 1) : position;
     const safePosition = Math.max(0, Math.min(maxPosition, Number(position) || 0));
+    const mediaItem = {
+      ...state.activeRecording,
+      playbackPath: state.recordingMediaPath
+    };
     el.recordingStream.removeAttribute("data-fallback-applied");
     state.recordingFramePending = true;
-    el.recordingStream.src = state.client.recordingFrameUrl(state.activeRecording, safePosition);
+    el.recordingStream.src = state.client.recordingFrameUrl(
+      mediaItem,
+      state.recordingMediaOffsetMs + safePosition
+    );
   }
 
   function pauseRecordingPlayback(showFrame = true) {
@@ -1780,6 +1796,8 @@
     state.recordingFramePending = false;
     state.recordingPositionMs = 0;
     state.recordingStartedAt = 0;
+    state.recordingMediaOffsetMs = 0;
+    state.recordingMediaPath = "";
     el.recordingStream.removeAttribute("src");
     updateRecordingPlayButton();
   }
@@ -1842,6 +1860,9 @@
     el.recordingResolution.textContent = item.res || "";
     el.recordingStream.alt = title;
     const isSnapshotAlert = kind === "alert" && !hasPlayableRecording(item);
+    const hasReliableAlertOffset =
+      kind === "alert" &&
+      (Number(item.flags || 0) & ALERT_OFFSET_MS_FLAG) !== 0;
     const exportJob = kind === "alert" ? state.exportJobs.get(alertExportKey(item)) : null;
     const exportPending = exportJob && ["queued", "active"].includes(exportJob.status);
     el.recordingExportButton.hidden = kind !== "alert";
@@ -1853,10 +1874,14 @@
       ? `<span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span>Exporting…</span>`
       : `${icon(exportJob?.status === "done" ? "check" : "download")}<span>${exportJob?.status === "done" ? "Download MP4" : "Export MP4"}</span>`;
     state.recordingDurationMs = isSnapshotAlert ? 0 : recordingLengthMs(item);
-    const requestedStart = kind === "alert" ? Number(item.offset || 0) : 0;
-    state.recordingPositionMs = state.recordingDurationMs > 0
-      ? Math.min(Math.max(0, requestedStart), Math.max(0, state.recordingDurationMs - 1))
-      : Math.max(0, requestedStart);
+    state.recordingMediaOffsetMs = hasReliableAlertOffset
+      ? Math.max(0, Number(item.offset || 0))
+      : 0;
+    state.recordingMediaPath =
+      kind === "alert" && !hasReliableAlertOffset
+        ? String(item.path || item.clip || "")
+        : String(item.clip || item.path || "");
+    state.recordingPositionMs = 0;
     el.recordingSeek.max = String(state.recordingDurationMs);
     el.recordingSeek.value = String(state.recordingPositionMs);
     el.recordingSeek.disabled = isSnapshotAlert || state.recordingDurationMs <= 0;
@@ -1868,7 +1893,7 @@
     const details = [
       ["Camera", item.cameraName],
       ["Captured", formatDateTime(item.date)],
-      ["Event", item.trigger || item.filetype || (kind === "alert" ? "Motion trigger" : "Recording")],
+      ["Event", item.trigger || (kind === "alert" ? "Alert" : item.filetype || "Recording")],
       ["Resolution", item.res || "Not reported"],
       ["Duration", state.recordingDurationMs ? formatDuration(state.recordingDurationMs) : (isSnapshotAlert ? "Alert frame" : "Not reported")],
       ["Size", item.filesize || "Not reported"]

@@ -258,7 +258,7 @@
         date: now - minutesAgo * 60,
         path: `@demo-alert-${index}.jpg`,
         clip: `@demo-clip-${index}.bvr`,
-        offset: 0,
+        offset: index * 120000,
         res: index % 2 ? "2560x1440" : "1920x1080",
         flags: (index < 3 ? 1 : 0) | 65536,
         trigger: type,

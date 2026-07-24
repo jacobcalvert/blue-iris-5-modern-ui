@@ -462,7 +462,9 @@
     thumbnailUrl(item) {
       return this.mediaUrl(`thumbs/${encodeMediaPath(item.path || item.clip || "")}`, {
         w: 640,
-        q: 68
+        q: 68,
+        cache: 1,
+        v: Number(item.date || 0) || undefined
       });
     }
 
@@ -475,10 +477,11 @@
     }
 
     recordingUrl(item, time) {
-      const path = item.clip || item.path || "";
+      const path = item.playbackPath || item.clip || item.path || "";
       const parameters = {
         mode: "mjpeg",
         speed: 100,
+        addoverlay: 1,
         w: 1280,
         q: 72,
         cache: 1
@@ -488,12 +491,13 @@
     }
 
     recordingFrameUrl(item, time = 0) {
-      const path = item.clip || item.path || "";
+      const path = item.playbackPath || item.clip || item.path || "";
       return this.mediaUrl(`file/clips/${encodeMediaPath(path)}`, {
         speed: 0,
         audio: 0,
         stream: 0,
         extend: 2,
+        addoverlay: 1,
         time: Math.max(0, Math.floor(Number(time) || 0)),
         w: 1280,
         q: 72,
@@ -502,7 +506,7 @@
     }
 
     clipAudioUrl(item, time = 0) {
-      const path = item.clip || item.path || "";
+      const path = item.playbackPath || item.clip || item.path || "";
       return this.mediaUrl(`file/clips/${encodeMediaPath(path)}`, {
         speed: 100,
         audio: 1,
