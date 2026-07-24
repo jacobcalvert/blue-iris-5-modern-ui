@@ -373,6 +373,13 @@
       return this.mediaUrl(`clips/${encodeMediaPath(uri)}`, { dl: 1 });
     }
 
+    updateFlags(path, flags) {
+      return this.request("update", {
+        path,
+        flags: Math.trunc(Number(flags) || 0)
+      });
+    }
+
     mediaUrl(path, parameters = {}) {
       const url = new URL(appendPath(this.baseUrl, path));
       if (this.session) url.searchParams.set("session", this.session);

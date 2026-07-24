@@ -46,6 +46,7 @@
     <symbol id="i-server" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="6" rx="2"/><rect x="3" y="14" width="18" height="6" rx="2"/><path d="M7 7h.01M7 17h.01"/></symbol>
     <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
     <symbol id="i-filter" viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8L3 5Z"/></symbol>
+    <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4"/><path d="M5 5h10l-1.5 3L15 11H5"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
     <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></symbol>
   </svg>
@@ -476,7 +477,11 @@
             <h2 id="recordingModalTitle">Recording</h2>
           </div>
           <div class="viewer-header__actions">
-            <button id="recordingExportButton" class="btn btn-soft recording-export-button" type="button" data-action="export-active-alert" hidden>
+            <button id="recordingFlagButton" class="btn btn-soft recording-header-button recording-flag-button" type="button"
+              data-action="toggle-active-alert-flag" aria-pressed="false" hidden>
+              <svg class="icon"><use href="#i-flag"/></svg><span>Flag</span>
+            </button>
+            <button id="recordingExportButton" class="btn btn-soft recording-header-button recording-export-button" type="button" data-action="export-active-alert" hidden>
               <svg class="icon"><use href="#i-download"/></svg><span>Export MP4</span>
             </button>
             <button class="icon-button" data-bs-dismiss="modal" aria-label="Close"><svg class="icon"><use href="#i-x"/></svg></button>

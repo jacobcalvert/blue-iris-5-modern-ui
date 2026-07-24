@@ -1467,22 +1467,32 @@ button {
   flex: 0 0 auto;
 }
 
-.event-card__export {
+.event-card__export,
+.event-card__flag {
   padding: 0;
   cursor: pointer;
 }
 
-.event-card__export:hover:not(:disabled) {
+.event-card__export:hover:not(:disabled),
+.event-card__flag:hover:not(:disabled) {
   border-color: rgba(var(--bi-primary-rgb), 0.34);
   color: var(--bi-primary);
 }
 
-.event-card__export:disabled {
+.event-card__export:disabled,
+.event-card__flag:disabled {
   cursor: not-allowed;
   opacity: 0.42;
 }
 
-.event-card__export .spinner-border {
+.event-card__flag.is-flagged {
+  border-color: rgba(250, 181, 61, 0.42);
+  color: #fabb3d;
+  background: rgba(250, 181, 61, 0.12);
+}
+
+.event-card__export .spinner-border,
+.event-card__flag .spinner-border {
   width: 13px;
   height: 13px;
 }
@@ -1826,14 +1836,20 @@ button {
   margin-left: auto;
 }
 
-.recording-export-button {
+.recording-header-button {
   min-height: 40px;
   font-size: 0.72rem;
 }
 
-.recording-export-button .spinner-border {
+.recording-header-button .spinner-border {
   width: 14px;
   height: 14px;
+}
+
+.recording-flag-button.is-flagged {
+  border-color: rgba(250, 181, 61, 0.42);
+  color: #fabb3d;
+  background: rgba(250, 181, 61, 0.12);
 }
 
 .viewer-body {
@@ -2859,12 +2875,12 @@ button {
     min-height: 64px;
   }
 
-  .recording-export-button {
+  .recording-header-button {
     width: 40px;
     padding: 0;
   }
 
-  .recording-export-button span:not(.spinner-border) {
+  .recording-header-button span:not(.spinner-border) {
     display: none;
   }
 

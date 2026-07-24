@@ -18,6 +18,7 @@
     { id: "360p", label: "360p", width: 640, height: 360, kbps: 256, stream: 0 }
   ];
   const SESSION_STORAGE_KEY = "bi-mobile-session-v1";
+  const DATABASE_FLAGGED_FLAG = 2;
   const ALERT_OFFSET_MS_FLAG = 65536;
   const EXPORT_POLL_INTERVAL_MS = 1800;
 
@@ -62,7 +63,8 @@
     recordingTimer: null,
     recordingSeekPreviewTimer: null,
     recordingFramePending: false,
-    exportJobs: new Map()
+    exportJobs: new Map(),
+    pendingAlertFlags: new Set()
   };
 
   const el = {};
@@ -88,7 +90,7 @@
       "recordingTypeLabel", "recordingStream", "recordingTimestamp", "recordingResolution",
       "recordingPlayToggle", "recordingCurrentTime", "recordingSeek", "recordingDuration",
       "recordingAudioToggle", "recordingVolume",
-      "recordingExportButton", "recordingCameraName", "recordingDetails", "settingsModal", "settingsServerName",
+      "recordingFlagButton", "recordingExportButton", "recordingCameraName", "recordingDetails", "settingsModal", "settingsServerName",
       "settingsServerUrl", "autoRefreshToggle", "compactCardsToggle", "toastRegion"
     ].forEach((id) => { el[id] = document.getElementById(id); });
   }
@@ -380,6 +382,91 @@
 
   function alertExportKey(item) {
     return [item?.path, item?.clip, item?.offset].map((value) => String(value ?? "")).join("|");
+  }
+
+  function alertRecordLocator(item) {
+    const record = String(item?.path || "")
+      .trim()
+      .replace(/^.*[\\/]/, "")
+      .replace(/^@/, "")
+      .replace(/\..*$/, "");
+    return record ? `@${record}` : "";
+  }
+
+  function isAlertFlagged(item) {
+    return (Number(item?.flags || 0) & DATABASE_FLAGGED_FLAG) !== 0;
+  }
+
+  function alertFlagPending(item) {
+    const path = alertRecordLocator(item);
+    return Boolean(path && state.pendingAlertFlags.has(path));
+  }
+
+  function updateRecordingFlagButton() {
+    const item = state.recordingKind === "alert" ? state.activeRecording : null;
+    const flagged = isAlertFlagged(item);
+    const pending = alertFlagPending(item);
+    el.recordingFlagButton.hidden = !item;
+    el.recordingFlagButton.disabled = !item || pending;
+    el.recordingFlagButton.classList.toggle("is-flagged", flagged);
+    el.recordingFlagButton.setAttribute("aria-pressed", String(flagged));
+    el.recordingFlagButton.setAttribute(
+      "aria-label",
+      flagged ? "Unflag alert" : "Flag alert for later review"
+    );
+    el.recordingFlagButton.title = flagged
+      ? "Remove this alert from the flagged view"
+      : "Flag this alert for later review";
+    el.recordingFlagButton.innerHTML = pending
+      ? `<span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span>Saving…</span>`
+      : `${icon("flag")}<span>${flagged ? "Unflag" : "Flag"}</span>`;
+  }
+
+  async function toggleAlertFlag(index) {
+    const item = state.alerts[Number(index)];
+    if (!item || !state.client) return;
+
+    const path = alertRecordLocator(item);
+    if (!path) {
+      showToast("Flag unavailable", "Blue Iris did not provide a database record for this alert.", "error");
+      return;
+    }
+    if (state.pendingAlertFlags.has(path)) return;
+
+    const wasFlagged = isAlertFlagged(item);
+    const currentFlags = Math.trunc(Number(item.flags || 0));
+    const nextFlags = wasFlagged
+      ? currentFlags & ~DATABASE_FLAGGED_FLAG
+      : currentFlags | DATABASE_FLAGGED_FLAG;
+
+    state.pendingAlertFlags.add(path);
+    renderAlerts();
+    updateRecordingFlagButton();
+
+    try {
+      await state.client.updateFlags(path, nextFlags);
+      item.flags = nextFlags;
+      if (alertRecordLocator(state.activeRecording) === path) {
+        state.activeRecording.flags = nextFlags;
+      }
+      showToast(
+        wasFlagged ? "Alert unflagged" : "Alert flagged",
+        wasFlagged
+          ? "The alert was removed from your flagged view."
+          : "The alert is available in the Flagged database view."
+      );
+    } catch (error) {
+      showToast(
+        wasFlagged ? "Could not unflag alert" : "Could not flag alert",
+        error?.message || "Blue Iris rejected the database update.",
+        "error",
+        6500
+      );
+    } finally {
+      state.pendingAlertFlags.delete(path);
+      renderAlerts();
+      updateRecordingFlagButton();
+    }
   }
 
   function alertExportSourcePath(item) {
@@ -925,9 +1012,11 @@
     const zone = el.alertZoneFilter.value || "all";
     const zoneMask = zone === "all" ? 0 : Number(zone);
     const query = el.alertSearch.value.trim().toLowerCase();
+    const databaseView = el.alertViewFilter.value || "alerts";
     const alerts = state.alerts.filter((item) => {
       const matchesScope = scope === "index" || members.includes(item.camera);
       const matchesZone = !zoneMask || (Number(item.zones || 0) & zoneMask) !== 0;
+      const matchesView = databaseView !== "flagged" || isAlertFlagged(item);
       const searchText = [
         item.cameraName,
         item.camera,
@@ -936,7 +1025,7 @@
         item.res,
         item.filetype
       ].filter(Boolean).join(" ").toLowerCase();
-      return matchesScope && matchesZone && (!query || searchText.includes(query));
+      return matchesScope && matchesZone && matchesView && (!query || searchText.includes(query));
     });
     const direction = el.alertSortFilter.value === "oldest" ? -1 : 1;
     return alerts.sort((a, b) => direction * (Number(b.date || 0) - Number(a.date || 0)));
@@ -980,6 +1069,8 @@
       const exportJob = state.exportJobs.get(alertExportKey(item));
       const exportPending = exportJob && ["queued", "active"].includes(exportJob.status);
       const exportAvailable = hasPlayableRecording(item) && state.permissions.clipcreate !== false;
+      const flagged = isAlertFlagged(item);
+      const flagPending = alertFlagPending(item);
       return `
       <article class="event-card" tabindex="0" role="button" data-event-kind="alert" data-event-index="${state.alerts.indexOf(item)}"
         aria-label="Open alert from ${escapeHtml(item.cameraName)}">
@@ -991,6 +1082,13 @@
         <div class="event-card__body">
           <div><strong>${escapeHtml(item.cameraName)}</strong><span>${escapeHtml(formatRelative(item.date))}${newCount && (Number(item.flags || 0) & 1) ? " · New" : ""}</span></div>
           <div class="event-card__actions">
+            <button class="event-card__action event-card__flag${flagged ? " is-flagged" : ""}" type="button"
+              data-action="toggle-alert-flag" data-alert-index="${sourceIndex}" aria-pressed="${flagged}"
+              aria-label="${flagged ? "Unflag" : "Flag"} ${escapeHtml(item.cameraName)} alert"
+              title="${flagged ? "Remove from flagged alerts" : "Flag for later review"}"
+              ${flagPending ? "disabled" : ""}>
+              ${flagPending ? `<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>` : icon("flag")}
+            </button>
             <button class="event-card__action event-card__export" type="button" data-action="export-alert" data-alert-index="${sourceIndex}"
               aria-label="Export ${escapeHtml(item.cameraName)} alert as MP4 with sound"
               title="${exportAvailable ? "Export alert as MP4 with sound" : "This alert cannot be exported as video"}"
@@ -1904,6 +2002,7 @@
     el.recordingExportButton.innerHTML = exportPending
       ? `<span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span>Exporting…</span>`
       : `${icon(exportJob?.status === "done" ? "check" : "download")}<span>${exportJob?.status === "done" ? "Download MP4" : "Export MP4"}</span>`;
+    updateRecordingFlagButton();
     state.recordingDurationMs = isSnapshotAlert ? 0 : recordingLengthMs(item);
     state.recordingMediaOffsetMs = hasReliableAlertOffset
       ? Math.max(0, Number(item.offset || 0))
@@ -1980,6 +2079,7 @@
       job.toast?.remove();
     });
     state.exportJobs.clear();
+    state.pendingAlertFlags.clear();
     clearCachedSession();
     try {
       await state.client?.logout();
@@ -2037,6 +2137,12 @@
         triggerActiveCamera();
       } else if (action === "fallback-snapshot") {
         setStreamMode("snapshot");
+      } else if (action === "toggle-alert-flag") {
+        toggleAlertFlag(actionButton.dataset.alertIndex);
+      } else if (action === "toggle-active-alert-flag") {
+        const path = alertRecordLocator(state.activeRecording);
+        const index = state.alerts.findIndex((item) => alertRecordLocator(item) === path);
+        if (index >= 0) toggleAlertFlag(index);
       } else if (action === "export-alert") {
         exportAlert(actionButton.dataset.alertIndex);
       } else if (action === "export-active-alert") {

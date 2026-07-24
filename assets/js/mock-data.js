@@ -237,6 +237,7 @@
         tzone: 300
       };
       this.exportJobs = new Map();
+      this.alertFlagOverrides = new Map();
     }
 
     async login() {
@@ -252,22 +253,26 @@
     async loadDashboard(options = {}) {
       await delay(300);
       const now = Math.floor(Date.now() / 1000);
-      const alerts = alertPlan.map(([camera, minutesAgo, type], index) => ({
-        camera,
-        cameraName: cameraName(camera),
-        date: now - minutesAgo * 60,
-        path: `@demo-alert-${index}.jpg`,
-        clip: `@demo-clip-${index}.bvr`,
-        offset: index * 120000,
-        res: index % 2 ? "2560x1440" : "1920x1080",
-        // Keep one alert without the offset-ms flag so demo exports exercise the
-        // same source-selection fallback used by older/migrated database entries.
-        flags: (index < 3 ? 1 : 0) | (index === 0 ? 0 : 65536),
-        trigger: type,
-        filetype: "bvr H264",
-        filesize: `${12 + index} sec (${3 + index}.2M)`,
-        zones: 1 << (index % 8)
-      }));
+      const alerts = alertPlan.map(([camera, minutesAgo, type], index) => {
+        const recordPath = `@demo-alert-${index}`;
+        const defaultFlags = (index < 3 ? 1 : 0) | (index === 0 ? 0 : 65536);
+        return {
+          camera,
+          cameraName: cameraName(camera),
+          date: now - minutesAgo * 60,
+          path: `${recordPath}.jpg`,
+          clip: `@demo-clip-${index}.bvr`,
+          offset: index * 120000,
+          res: index % 2 ? "2560x1440" : "1920x1080",
+          // Keep one alert without the offset-ms flag so demo exports exercise the
+          // same source-selection fallback used by older/migrated database entries.
+          flags: this.alertFlagOverrides.get(recordPath) ?? defaultFlags,
+          trigger: type,
+          filetype: "bvr H264",
+          filesize: `${12 + index} sec (${3 + index}.2M)`,
+          zones: 1 << (index % 8)
+        };
+      });
       const clips = clipPlan.map(([camera, minutesAgo, msec, type], index) => ({
         camera,
         cameraName: cameraName(camera),
@@ -322,6 +327,13 @@
           camera.isRecording = payload.manrec || camera.isRecording;
         }
         return clone(camera || {});
+      }
+      if (command === "update") {
+        const path = String(payload.path || "").replace(/\..*$/, "");
+        if (!/^@demo-alert-\d+$/.test(path)) throw new Error("Alert record not found");
+        const flags = Math.trunc(Number(payload.flags) || 0);
+        this.alertFlagOverrides.set(path, flags);
+        return { path, flags };
       }
       if (command === "export") {
         if (!payload.path) {
@@ -422,6 +434,10 @@
 
     exportDownloadUrl(uri) {
       return `data:video/mp4;base64,AAAA#${encodeURIComponent(uri)}`;
+    }
+
+    updateFlags(path, flags) {
+      return this.request("update", { path, flags });
     }
   }
 
