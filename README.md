@@ -1,6 +1,6 @@
 # Blue Iris Mobile
 
-A responsive, static web client for Blue Iris 5. It includes one-second live camera tiles, aggregate and per-camera audio, selectable UI3-style stream profiles, scrubbable recording playback with audio, alerts, PTZ controls, manual recording, triggers, shield/profile controls, and system health.
+A responsive, static web client for Blue Iris 5. It includes one-second live camera tiles, aggregate and per-camera audio, selectable UI3-style stream profiles, scrubbable recording playback with audio, alerts, press-and-hold PTZ controls, server-backed PTZ presets, manual recording, triggers, shield/profile controls, and system health.
 
 ## Run locally
 
@@ -63,6 +63,24 @@ A static browser app cannot bypass browser security:
 - Serving the app from Blue Iris itself, or placing both behind the same HTTPS reverse proxy, avoids these issues.
 - A reverse proxy must forward the complete Blue Iris media prefixes, especially `/h264/`. HLS playlists reference short-lived numbered `.ts` files under that same path, and `.m3u8` responses must not be cached.
 - Audio requires the low-latency `/video/` and `/file/clips/` routes to pass through unchanged. Browser autoplay rules require an explicit click before the all-camera audio mix can begin.
+
+## PTZ, presets, and talkback
+
+Directional and zoom controls send Blue Iris's paired movement commands: pressing starts
+movement with `updown: 1`, and releasing repeats the command with `updown: 0` to stop it.
+The center control sends the independent stop command (`64`), while Home remains available
+as command `4`. The app also sends a safety stop when the camera dialog closes, the page
+loses focus, or a movement remains active for ten seconds.
+
+Preset names and counts come from the camera's `ptz` metadata. Any user with PTZ permission
+can call a preset. Blue Iris administrator access is required to assign the camera's current
+position to a preset and save its description.
+
+Blue Iris may report a `talksamplerate` for cameras configured for two-way audio. The
+documented JSON web API does not define a microphone-upload transport, and UI3 does not
+implement one, so this app reports the capability but keeps Talk disabled. This avoids
+requesting microphone access for a control that the server cannot receive. Talkback can be
+enabled later only if Blue Iris exposes a supported browser transport for it.
 
 ## Demo mode
 

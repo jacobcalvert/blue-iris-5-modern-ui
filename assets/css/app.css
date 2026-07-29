@@ -2090,18 +2090,40 @@ button {
 
 .ptz-pad button {
   border-radius: 12px;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.ptz-pad button.is-active,
+.zoom-control button.is-active {
+  border-color: rgba(var(--bi-primary-rgb), 0.58);
+  color: #e8fffd;
+  background: rgba(var(--bi-primary-rgb), 0.2);
+  box-shadow: 0 0 0 3px rgba(var(--bi-primary-rgb), 0.08);
+}
+
+.ptz-pad .ptz-stop-button {
+  color: #ff8992;
+  background: rgba(255, 75, 90, 0.08);
+}
+
+.ptz-pad .ptz-stop-button .icon {
+  fill: currentColor;
+  stroke: none;
 }
 
 .ptz-pad button:disabled,
 .zoom-control button:disabled,
-.preset-control button:disabled {
+.preset-control button:disabled,
+.preset-editor button:disabled {
   opacity: 0.35;
   cursor: not-allowed;
 }
 
 .zoom-control {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 7px;
 }
 
@@ -2110,6 +2132,9 @@ button {
   gap: 5px;
   border-radius: 10px;
   font-size: 0.62rem;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .zoom-control .icon {
@@ -2117,26 +2142,132 @@ button {
   height: 15px;
 }
 
-.preset-control {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
+.preset-section {
+  min-width: 0;
 }
 
-.preset-control::before {
-  content: "PRESETS";
-  grid-column: 1 / -1;
-  margin-bottom: 3px;
+.preset-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 7px;
   color: #66768a;
   font-size: 0.6rem;
   font-weight: 700;
   letter-spacing: 0.09em;
+  text-transform: uppercase;
 }
 
-.preset-control button {
-  min-height: 34px;
-  border-radius: 8px;
+.preset-heading span:last-child {
+  overflow: hidden;
+  color: #7f91a6;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.preset-control {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.preset-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 32px;
+}
+
+.preset-control .preset-go {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-width: 0;
+  min-height: 38px;
+  padding: 0 8px;
+  gap: 7px;
+  border-radius: 8px 0 0 8px;
   font-size: 0.62rem;
+  text-align: left;
+}
+
+.preset-control .preset-number {
+  flex: 0 0 auto;
+  display: inline-grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border-radius: 6px;
+  color: #b5c4d3;
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 0.58rem;
+  font-weight: 760;
+}
+
+.preset-control .preset-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preset-control .preset-set {
+  min-height: 38px;
+  border-left: 0;
+  border-radius: 0 8px 8px 0;
+}
+
+.preset-control .preset-set .icon {
+  width: 13px;
+  height: 13px;
+}
+
+.preset-editor {
+  margin-top: 10px;
+  padding: 11px;
+  border: 1px solid var(--bi-border);
+  border-radius: 10px;
+  background: rgba(5, 10, 17, 0.45);
+}
+
+.preset-editor label {
+  display: grid;
+  gap: 7px;
+  color: #9aaabd;
+  font-size: 0.66rem;
+  font-weight: 650;
+}
+
+.preset-editor .form-control {
+  min-height: 38px;
+  border-color: var(--bi-border);
+  color: #e4edf5;
+  background: #0b111a;
+  font-size: 0.75rem;
+}
+
+.preset-editor__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.preset-editor__actions .btn {
+  min-height: 34px;
+  padding-inline: 11px;
+  font-size: 0.65rem;
+}
+
+.talkback-button {
+  min-width: 86px;
+}
+
+.talkback-button.is-talking {
+  border-color: rgba(255, 107, 119, 0.45);
+  color: #fff;
+  background: rgba(255, 75, 90, 0.16);
 }
 
 .recording-body {
@@ -2623,7 +2754,7 @@ button {
     align-items: center;
   }
 
-  .preset-control {
+  .preset-section {
     grid-column: 2;
   }
 
@@ -2916,7 +3047,7 @@ button {
 
   .viewer-actions {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .viewer-actions .media-volume-control {
@@ -2953,7 +3084,7 @@ button {
     display: flex;
   }
 
-  .preset-control {
+  .preset-section {
     grid-column: auto;
   }
 

@@ -199,6 +199,7 @@
       this.serverName = "Blue Iris Home";
       this.session = "demo-session";
       this.username = "demo";
+      this.talkbackTransportSupported = false;
       this.permissions = {
         admin: true,
         changeprofile: true,
@@ -238,6 +239,13 @@
       };
       this.exportJobs = new Map();
       this.alertFlagOverrides = new Map();
+      this.ptzCommands = [];
+      this.ptzPresets = new Map([
+        [1, "Front gate"],
+        [2, "Driveway"],
+        [3, "Porch"],
+        [4, "Street"]
+      ]);
     }
 
     async login() {
@@ -311,7 +319,31 @@
         if (typeof payload.profile === "number" && payload.profile >= 0) this.status.profile = payload.profile;
         return clone(this.status);
       }
-      if (command === "ptz") return { ok: true };
+      if (command === "ptz") {
+        if (payload.button === undefined) {
+          return {
+            presetnum: 12,
+            presets: Array.from(this.ptzPresets, ([num, description]) => ({ num, description })),
+            talksamplerate: 8000
+          };
+        }
+        this.ptzCommands.push({
+          camera: payload.camera,
+          button: Number(payload.button),
+          updown: payload.updown,
+          description: payload.description
+        });
+        const presetNumber = Number(payload.button) - 100;
+        if (
+          Number.isInteger(presetNumber) &&
+          presetNumber >= 1 &&
+          presetNumber <= 20 &&
+          typeof payload.description === "string"
+        ) {
+          this.ptzPresets.set(presetNumber, payload.description);
+        }
+        return { ok: true };
+      }
       if (command === "trigger") {
         const camera = this.cameras.find((item) => item.optionValue === payload.camera);
         if (camera) {
@@ -426,6 +458,16 @@
         overlay: true,
         ...options
       });
+    }
+
+    emergencyPtzStop(camera, movementButton) {
+      this.ptzCommands.push({
+        camera,
+        button: Number(movementButton),
+        updown: 0,
+        emergency: true
+      });
+      return true;
     }
 
     exportStatus() {

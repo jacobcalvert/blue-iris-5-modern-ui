@@ -21,6 +21,12 @@
   const DATABASE_FLAGGED_FLAG = 2;
   const ALERT_OFFSET_MS_FLAG = 65536;
   const EXPORT_POLL_INTERVAL_MS = 1800;
+  const PTZ_STOP_COMMAND = 64;
+  const PTZ_HOME_COMMAND = 4;
+  const PTZ_PRESET_BASE = 100;
+  const PTZ_MAX_PRESETS = 20;
+  const PTZ_SAFETY_STOP_MS = 10000;
+  const PTZ_MOVEMENT_COMMANDS = new Set([-2, -1, 0, 1, 2, 3, 5, 6, 59, 60, 61, 62]);
 
   const state = {
     client: null,
@@ -64,7 +70,13 @@
     recordingSeekPreviewTimer: null,
     recordingFramePending: false,
     exportJobs: new Map(),
-    pendingAlertFlags: new Set()
+    pendingAlertFlags: new Set(),
+    ptzMetadata: null,
+    ptzMetadataCameraId: "",
+    ptzActiveMovement: null,
+    ptzRequestChain: Promise.resolve(),
+    ptzSafetyTimer: null,
+    ptzLoading: false
   };
 
   const el = {};
@@ -84,9 +96,12 @@
       "profileControl", "scheduleStatus", "storageList", "serverDetails", "cameraModal",
       "cameraModalTitle", "cameraModalStatus", "cameraViewport", "cameraStream", "cameraVideo",
       "cameraHlsPlayer", "liveAudioToggle", "liveVolume",
+      "talkbackButton",
       "viewerTimestamp", "viewerResolution", "streamError", "streamErrorTitle",
       "streamErrorMessage", "streamQualitySelect", "manualRecordButton", "triggerButton",
-      "ptzPanel", "presetControl", "snapshotDownload", "recordingModal", "recordingModalTitle",
+      "ptzPanel", "presetControl", "presetStatus", "presetEditor", "presetNumber",
+      "presetDescription", "presetEditorLabel", "presetSaveButton", "snapshotDownload",
+      "recordingModal", "recordingModalTitle",
       "recordingTypeLabel", "recordingStream", "recordingTimestamp", "recordingResolution",
       "recordingPlayToggle", "recordingCurrentTime", "recordingSeek", "recordingDuration",
       "recordingAudioToggle", "recordingVolume",
@@ -1579,16 +1594,21 @@
     el.manualRecordButton.classList.toggle("is-recording", Boolean(camera.isManRec));
     el.manualRecordButton.querySelector("span").textContent = camera.isManRec ? "Stop recording" : "Record";
 
-    const canPtz = state.permissions.ptz !== false && camera.ptz === true && online;
-    el.ptzPanel.querySelectorAll("button").forEach((button) => { button.disabled = !canPtz; });
-    el.presetControl.innerHTML = Array.from({ length: 8 }, (_, index) =>
-      `<button data-ptz="${101 + index}" ${canPtz ? "" : "disabled"} aria-label="Go to preset ${index + 1}">${index + 1}</button>`
-    ).join("");
+    const canPtz = canControlPtz(camera);
+    el.ptzPanel
+      .querySelectorAll("[data-ptz-move], [data-action='ptz-stop'], [data-action='ptz-home']")
+      .forEach((button) => { button.disabled = !canPtz; });
+    closePresetEditor();
+    state.ptzMetadata = normalizePtzMetadata({});
+    state.ptzMetadataCameraId = camera.optionValue;
+    state.ptzLoading = canPtz;
+    renderPresetControls();
 
     setStreamMode(state.client.isDemo ? "snapshot" : "mjpeg");
     bootstrap.Modal.getOrCreateInstance(el.cameraModal).show();
     updateLiveAudioControls();
     if (state.liveVolume > 0) startLiveAudio();
+    loadPtzMetadata(camera);
   }
 
   function setStreamMode(mode) {
@@ -1727,16 +1747,306 @@
     el.streamError.hidden = false;
   }
 
-  async function sendPtz(button) {
-    if (!state.activeCamera) return;
+  function canControlPtz(camera = state.activeCamera) {
+    return Boolean(
+      camera &&
+      state.permissions.ptz !== false &&
+      camera.ptz === true &&
+      camera.isOnline !== false &&
+      !camera.isNoSignal
+    );
+  }
+
+  function canSetPtzPresets() {
+    return Boolean(state.permissions.admin || state.permissions.ptzpresetset);
+  }
+
+  function queuePtzRequest(cameraId, payload, options = {}) {
+    const client = state.client;
+    const operation = async () => {
+      if (!client || client !== state.client || !cameraId) return null;
+      try {
+        return await client.request("ptz", { camera: cameraId, ...payload });
+      } catch (error) {
+        if (!options.quiet) {
+          showToast("PTZ command failed", error?.message || "Blue Iris rejected the camera command.", "error");
+        }
+        throw error;
+      }
+    };
+    state.ptzRequestChain = state.ptzRequestChain.then(operation, operation);
+    return state.ptzRequestChain;
+  }
+
+  function clearPtzSafetyTimer() {
+    window.clearTimeout(state.ptzSafetyTimer);
+    state.ptzSafetyTimer = null;
+  }
+
+  function setPtzButtonActive(button, active) {
+    button?.classList.toggle("is-active", active);
+    button?.setAttribute("aria-pressed", String(active));
+  }
+
+  function startPtzMovement(command, button, pointerId = null) {
+    const camera = state.activeCamera;
+    const numericCommand = Number(command);
+    if (!canControlPtz(camera) || !PTZ_MOVEMENT_COMMANDS.has(numericCommand)) return;
+
+    if (
+      state.ptzActiveMovement?.cameraId === camera.optionValue &&
+      state.ptzActiveMovement?.command === numericCommand
+    ) return;
+
+    if (state.ptzActiveMovement) stopPtzMovement({ hardStop: true, quiet: true });
+
+    const movement = {
+      cameraId: camera.optionValue,
+      command: numericCommand,
+      button,
+      pointerId
+    };
+    state.ptzActiveMovement = movement;
+    setPtzButtonActive(button, true);
+    queuePtzRequest(movement.cameraId, { button: movement.command, updown: 1 }).catch(() => {
+      if (state.ptzActiveMovement === movement) {
+        state.ptzActiveMovement = null;
+        setPtzButtonActive(button, false);
+        clearPtzSafetyTimer();
+      }
+    });
+
+    clearPtzSafetyTimer();
+    state.ptzSafetyTimer = window.setTimeout(() => {
+      if (state.ptzActiveMovement === movement) {
+        stopPtzMovement({ hardStop: true, quiet: true });
+        showToast("PTZ safety stop", "Camera movement was stopped after 10 seconds.");
+      }
+    }, PTZ_SAFETY_STOP_MS);
+  }
+
+  function stopPtzMovement(options = {}) {
+    const movement = state.ptzActiveMovement;
+    state.ptzActiveMovement = null;
+    clearPtzSafetyTimer();
+    if (movement) {
+      setPtzButtonActive(movement.button, false);
+      // Blue Iris expects the same movement button a second time with updown=0.
+      // Queueing guarantees the stop is sent after its matching start request.
+      const stopRequest = queuePtzRequest(
+        movement.cameraId,
+        { button: movement.command, updown: 0 },
+        { quiet: options.quiet }
+      );
+      if (options.hardStop) {
+        stopRequest
+          .catch(() => null)
+          .then(() => queuePtzRequest(
+            movement.cameraId,
+            { button: PTZ_STOP_COMMAND },
+            { quiet: options.quiet }
+          ))
+          .catch(() => {});
+      } else {
+        stopRequest.catch(() => {});
+      }
+      return;
+    }
+
+    if (options.hardStop && state.activeCamera && canControlPtz()) {
+      queuePtzRequest(
+        state.activeCamera.optionValue,
+        { button: PTZ_STOP_COMMAND },
+        { quiet: options.quiet }
+      ).catch(() => {});
+    }
+  }
+
+  function sendPtzAction(command, payload = {}) {
+    const camera = state.activeCamera;
+    if (!canControlPtz(camera)) return Promise.resolve(null);
+    if (state.ptzActiveMovement) stopPtzMovement({ hardStop: true, quiet: true });
+    return queuePtzRequest(camera.optionValue, {
+      button: Number(command),
+      ...payload
+    });
+  }
+
+  function normalizePtzMetadata(data) {
+    const source = data && typeof data === "object" ? data : {};
+    const rawPresets = Array.isArray(source.presets) ? source.presets : [];
+    const presets = new Map();
+    rawPresets.forEach((preset, index) => {
+      const objectPreset = preset && typeof preset === "object";
+      const number = objectPreset ? Number(preset.num ?? preset.number) : index + 1;
+      if (!Number.isInteger(number) || number < 1 || number > PTZ_MAX_PRESETS) return;
+      const description = objectPreset
+        ? String(preset.description ?? preset.name ?? preset.desc ?? "")
+        : String(preset || "");
+      presets.set(number, description);
+    });
+    const reportedCount = Number(source.presetnum);
+    const count = Math.min(
+      PTZ_MAX_PRESETS,
+      Math.max(8, Number.isFinite(reportedCount) ? reportedCount : rawPresets.length || 8)
+    );
+    return {
+      ...source,
+      presetnum: count,
+      presetMap: presets,
+      talksamplerate: Math.max(0, Number(source.talksamplerate) || 0)
+    };
+  }
+
+  function updateTalkbackSupport() {
+    const button = el.talkbackButton;
+    if (!button) return;
+    const camera = state.activeCamera;
+    const sampleRate = Number(state.ptzMetadata?.talksamplerate || 0);
+    const cameraCapable = sampleRate > 0;
+    const hasAudioPermission = state.permissions.audio !== false;
+    const transportSupported = Boolean(state.client?.talkbackTransportSupported);
+    const browserCapable = Boolean(
+      window.isSecureContext &&
+      navigator.mediaDevices?.getUserMedia
+    );
+    const available =
+      canControlPtz(camera) &&
+      cameraCapable &&
+      hasAudioPermission &&
+      transportSupported &&
+      browserCapable;
+
+    button.disabled = !available;
+    button.classList.remove("is-talking");
+    button.setAttribute("aria-pressed", "false");
+    button.querySelector("span").textContent = available
+      ? "Hold to talk"
+      : (cameraCapable ? "Talk unavailable" : "Talk");
+
+    if (!camera || camera.audio === false || !hasAudioPermission) {
+      button.title = "Talkback is not available for this camera or account.";
+    } else if (!cameraCapable) {
+      button.title = state.ptzLoading
+        ? "Checking whether this camera supports talkback."
+        : "Blue Iris did not report talkback support for this camera.";
+    } else if (!transportSupported) {
+      button.title = `This camera reports ${sampleRate} Hz talkback, but the Blue Iris JSON web API does not expose a microphone upload transport.`;
+    } else if (!window.isSecureContext) {
+      button.title = "Browser microphone access requires HTTPS or localhost.";
+    } else if (!navigator.mediaDevices?.getUserMedia) {
+      button.title = "This browser does not provide microphone access.";
+    } else {
+      button.title = `Hold to talk to this camera at ${sampleRate} Hz.`;
+    }
+    button.setAttribute("aria-label", button.title);
+  }
+
+  function renderPresetControls() {
+    const camera = state.activeCamera;
+    const canPtz = canControlPtz(camera);
+    const metadata = state.ptzMetadata || normalizePtzMetadata({});
+    const canSet = canSetPtzPresets();
+    const count = metadata.presetnum;
+
+    el.presetStatus.textContent = state.ptzLoading
+      ? "Loading..."
+      : `${count} available${canSet ? "" : " - admin required to set"}`;
+    el.presetControl.innerHTML = Array.from({ length: count }, (_, index) => {
+      const number = index + 1;
+      const storedDescription = metadata.presetMap.get(number) || "";
+      const description = storedDescription || `Preset ${number}`;
+      const escapedDescription = escapeHtml(description);
+      return `
+        <div class="preset-item">
+          <button class="preset-go" type="button" data-preset-go="${number}"
+            ${canPtz ? "" : "disabled"} title="Go to ${escapedDescription}">
+            <span class="preset-number">${number}</span>
+            <span class="preset-name">${escapedDescription}</span>
+          </button>
+          <button class="preset-set" type="button" data-preset-set="${number}"
+            ${canPtz && canSet ? "" : "disabled"}
+            aria-label="Set preset ${number}" title="${canSet ? `Set preset ${number}` : "Administrator access is required to assign presets"}">
+            ${icon("edit")}
+          </button>
+        </div>
+      `;
+    }).join("");
+    updateTalkbackSupport();
+  }
+
+  async function loadPtzMetadata(camera) {
+    if (!canControlPtz(camera)) {
+      state.ptzMetadata = normalizePtzMetadata({});
+      state.ptzMetadataCameraId = "";
+      state.ptzLoading = false;
+      renderPresetControls();
+      return;
+    }
+
+    const cameraId = camera.optionValue;
+    state.ptzLoading = true;
+    state.ptzMetadata = normalizePtzMetadata({});
+    state.ptzMetadataCameraId = cameraId;
+    renderPresetControls();
     try {
-      await state.client.request("ptz", {
-        camera: state.activeCamera.optionValue,
-        button: Number(button),
-        updown: 1
-      });
+      const data = await state.client.request("ptz", { camera: cameraId });
+      if (state.activeCamera?.optionValue !== cameraId) return;
+      state.ptzMetadata = normalizePtzMetadata(data);
     } catch (error) {
-      showToast("PTZ command failed", error?.message || "Blue Iris rejected the camera command.", "error");
+      if (state.activeCamera?.optionValue !== cameraId) return;
+      showToast(
+        "PTZ details unavailable",
+        error?.message || "Movement remains available, but preset descriptions could not be loaded.",
+        "error"
+      );
+    } finally {
+      if (state.activeCamera?.optionValue === cameraId) {
+        state.ptzLoading = false;
+        renderPresetControls();
+      }
+    }
+  }
+
+  function closePresetEditor() {
+    el.presetEditor.hidden = true;
+    el.presetNumber.value = "";
+    el.presetDescription.value = "";
+  }
+
+  function openPresetEditor(number) {
+    if (!canControlPtz() || !canSetPtzPresets()) return;
+    const presetNumber = Number(number);
+    if (!Number.isInteger(presetNumber) || presetNumber < 1 || presetNumber > PTZ_MAX_PRESETS) return;
+    const description = state.ptzMetadata?.presetMap?.get(presetNumber) || `Preset ${presetNumber}`;
+    el.presetNumber.value = String(presetNumber);
+    el.presetEditorLabel.textContent = `Set preset ${presetNumber} to the camera's current position`;
+    el.presetDescription.value = description;
+    el.presetEditor.hidden = false;
+    el.presetDescription.focus();
+    el.presetDescription.select();
+  }
+
+  async function savePreset(event) {
+    event.preventDefault();
+    if (!canControlPtz() || !canSetPtzPresets()) return;
+    const number = Number(el.presetNumber.value);
+    if (!Number.isInteger(number) || number < 1 || number > PTZ_MAX_PRESETS) return;
+    const description = el.presetDescription.value.trim() || `Preset ${number}`;
+    el.presetSaveButton.disabled = true;
+    try {
+      await sendPtzAction(PTZ_PRESET_BASE + number, { description });
+      if (state.ptzMetadata) state.ptzMetadata.presetMap.set(number, description);
+      closePresetEditor();
+      renderPresetControls();
+      showToast("Preset saved", `Preset ${number} now uses the camera's current position.`);
+      window.setTimeout(() => {
+        if (state.activeCamera) loadPtzMetadata(state.activeCamera);
+      }, 120);
+    } catch {
+      // queuePtzRequest presents the Blue Iris error.
+    } finally {
+      el.presetSaveButton.disabled = false;
     }
   }
 
@@ -2070,6 +2380,7 @@
 
   async function logout(notify = true) {
     stopTimers();
+    stopPtzMovement({ hardStop: true, quiet: true });
     stopGridAudio();
     stopLiveAudio();
     stopRecordingPlayback();
@@ -2137,6 +2448,12 @@
         triggerActiveCamera();
       } else if (action === "fallback-snapshot") {
         setStreamMode("snapshot");
+      } else if (action === "ptz-stop") {
+        stopPtzMovement({ hardStop: true });
+      } else if (action === "ptz-home") {
+        sendPtzAction(PTZ_HOME_COMMAND).catch(() => {});
+      } else if (action === "cancel-preset-edit") {
+        closePresetEditor();
       } else if (action === "toggle-alert-flag") {
         toggleAlertFlag(actionButton.dataset.alertIndex);
       } else if (action === "toggle-active-alert-flag") {
@@ -2171,9 +2488,15 @@
       return;
     }
 
-    const ptzButton = event.target.closest("[data-ptz]");
-    if (ptzButton && !ptzButton.disabled) {
-      sendPtz(ptzButton.dataset.ptz);
+    const presetGo = event.target.closest("[data-preset-go]");
+    if (presetGo && !presetGo.disabled) {
+      sendPtzAction(PTZ_PRESET_BASE + Number(presetGo.dataset.presetGo)).catch(() => {});
+      return;
+    }
+
+    const presetSet = event.target.closest("[data-preset-set]");
+    if (presetSet && !presetSet.disabled) {
+      openPresetEditor(presetSet.dataset.presetSet);
       return;
     }
 
@@ -2203,6 +2526,43 @@
     }
   }
 
+  function handlePtzPointerDown(event) {
+    const button = event.target.closest("[data-ptz-move]");
+    if (!button || button.disabled || event.button > 0) return;
+    event.preventDefault();
+    try {
+      button.setPointerCapture(event.pointerId);
+    } catch {
+      // Global pointer handlers still provide a matching stop.
+    }
+    startPtzMovement(button.dataset.ptzMove, button, event.pointerId);
+  }
+
+  function handlePtzPointerRelease(event) {
+    const movement = state.ptzActiveMovement;
+    if (!movement) return;
+    if (
+      movement.pointerId !== null &&
+      event.pointerId !== undefined &&
+      movement.pointerId !== event.pointerId
+    ) return;
+    stopPtzMovement();
+  }
+
+  function handlePtzKeyDown(event) {
+    const button = event.target.closest?.("[data-ptz-move]");
+    if (!button || button.disabled || !["Enter", " "].includes(event.key)) return;
+    event.preventDefault();
+    if (!event.repeat) startPtzMovement(button.dataset.ptzMove, button);
+  }
+
+  function handlePtzKeyUp(event) {
+    const button = event.target.closest?.("[data-ptz-move]");
+    if (!button || !["Enter", " "].includes(event.key)) return;
+    event.preventDefault();
+    stopPtzMovement();
+  }
+
   function handleImageError(event) {
     if (!(event.target instanceof HTMLImageElement)) return;
     if (event.target.id === "cameraStream" || event.target.id === "recordingStream") {
@@ -2223,6 +2583,13 @@
     document.addEventListener("click", handleGlobalClick);
     document.addEventListener("keydown", handleKeyboardActivation);
     document.addEventListener("error", handleImageError, true);
+    el.ptzPanel.addEventListener("pointerdown", handlePtzPointerDown);
+    document.addEventListener("pointerup", handlePtzPointerRelease);
+    document.addEventListener("pointercancel", handlePtzPointerRelease);
+    el.ptzPanel.addEventListener("lostpointercapture", handlePtzPointerRelease);
+    el.ptzPanel.addEventListener("keydown", handlePtzKeyDown);
+    el.ptzPanel.addEventListener("keyup", handlePtzKeyUp);
+    el.presetEditor.addEventListener("submit", savePreset);
     el.recordingStream.addEventListener("load", () => {
       state.recordingFramePending = false;
     });
@@ -2303,9 +2670,14 @@
     });
 
     el.cameraModal.addEventListener("hidden.bs.modal", () => {
+      stopPtzMovement({ hardStop: true, quiet: true });
+      closePresetEditor();
       stopLiveAudio();
       stopViewerMedia();
       state.activeCamera = null;
+      state.ptzMetadata = null;
+      state.ptzMetadataCameraId = "";
+      updateTalkbackSupport();
     });
     el.recordingModal.addEventListener("hidden.bs.modal", () => {
       stopRecordingPlayback();
@@ -2313,7 +2685,17 @@
       state.recordingDurationMs = 0;
     });
     document.addEventListener("visibilitychange", () => {
-      if (!document.hidden) refreshVisibleSnapshots();
+      if (document.hidden) stopPtzMovement({ hardStop: true, quiet: true });
+      else refreshVisibleSnapshots();
+    });
+    window.addEventListener("blur", () => stopPtzMovement({ hardStop: true, quiet: true }));
+    window.addEventListener("pagehide", () => {
+      const movement = state.ptzActiveMovement;
+      if (!movement) return;
+      state.client?.emergencyPtzStop?.(movement.cameraId, movement.command);
+      setPtzButtonActive(movement.button, false);
+      state.ptzActiveMovement = null;
+      clearPtzSafetyTimer();
     });
   }
 

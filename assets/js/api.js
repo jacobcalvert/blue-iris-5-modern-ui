@@ -78,6 +78,9 @@
       this.timeout = options.timeout || 14000;
       this.apiBaseUrl = null;
       this.apiCandidates = apiBaseCandidates(this.baseUrl);
+      // Blue Iris reports camera talk capability in PTZ metadata, but its
+      // documented JSON API does not define a browser microphone upload route.
+      this.talkbackTransportSupported = false;
     }
 
     isSameOrigin(baseUrl = this.baseUrl) {
@@ -296,6 +299,31 @@
       if (!this.session) throw new BlueIrisError("Your Blue Iris session has ended. Sign in again.", "session");
       const response = await this.post({ cmd: command, session: this.session, ...payload });
       return Object.prototype.hasOwnProperty.call(response, "data") ? response.data : response;
+    }
+
+    emergencyPtzStop(camera, movementButton) {
+      if (!this.session || !camera || !Number.isFinite(Number(movementButton))) return false;
+      const baseUrl = this.apiBaseUrl || this.baseUrl;
+      const body = JSON.stringify({
+        cmd: "ptz",
+        session: this.session,
+        camera,
+        button: Number(movementButton),
+        updown: 0
+      });
+      try {
+        fetch(appendPath(baseUrl, "json"), {
+          method: "POST",
+          headers: { "Content-Type": "text/plain" },
+          body,
+          credentials: this.isSameOrigin(baseUrl) ? "same-origin" : "omit",
+          cache: "no-store",
+          keepalive: true
+        }).catch(() => {});
+        return true;
+      } catch {
+        return false;
+      }
     }
 
     async logout() {
