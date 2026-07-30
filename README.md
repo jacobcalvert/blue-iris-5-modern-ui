@@ -84,7 +84,10 @@ enabled later only if Blue Iris exposes a supported browser transport for it.
 
 ## Demo mode
 
-Choose **Explore demo dashboard** on the login screen to use the full interface with local sample data. This is useful for evaluating the layout without a Blue Iris server.
+Demo mode is hidden during normal use. Open `login.htm?demo=1` (or
+`app.html?demo=1` while developing) to reveal **Explore demo dashboard** and use the full
+interface with local sample data. The exact `demo=1` parameter is also checked before the
+mock client can start, so the hidden control cannot activate demo mode accidentally.
 
 ## Files
 

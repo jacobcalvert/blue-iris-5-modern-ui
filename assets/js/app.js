@@ -27,6 +27,7 @@
   const PTZ_MAX_PRESETS = 20;
   const PTZ_SAFETY_STOP_MS = 10000;
   const PTZ_MOVEMENT_COMMANDS = new Set([-2, -1, 0, 1, 2, 3, 5, 6, 59, 60, 61, 62]);
+  const DEMO_MODE_ENABLED = new URLSearchParams(window.location.search).get("demo") === "1";
 
   const state = {
     client: null,
@@ -84,7 +85,7 @@
   function cacheElements() {
     [
       "loginScreen", "loginForm", "loginButton", "loginError", "serverInput", "usernameInput",
-      "passwordInput", "appShell", "pageEyebrow", "pageTitle", "serverClock", "shieldButton",
+      "passwordInput", "demoControls", "appShell", "pageEyebrow", "pageTitle", "serverClock", "shieldButton",
       "shieldLabel", "topAlertBadge", "railAlertCount", "mobileAlertBadge", "railServerName",
       "railServerStatus", "accountName", "accountRole", "avatarInitials", "mainContent",
       "cameraSearch", "groupSelect", "cameraGrid", "cameraCountLabel", "liveHeading", "liveSubtitle",
@@ -757,6 +758,7 @@
   }
 
   async function startDemo() {
+    if (!DEMO_MODE_ENABLED) return;
     showLoginError("");
     state.client = new window.MockBlueIrisClient();
     state.permissions = await state.client.login();
@@ -2433,7 +2435,7 @@
         el.passwordInput.type = showing ? "password" : "text";
         actionButton.setAttribute("aria-label", showing ? "Show password" : "Hide password");
       } else if (action === "start-demo") {
-        startDemo();
+        if (DEMO_MODE_ENABLED) startDemo();
       } else if (action === "logout") {
         logout();
       } else if (action === "refresh") {
@@ -2701,6 +2703,7 @@
 
   function init() {
     cacheElements();
+    el.demoControls.hidden = !DEMO_MODE_ENABLED;
     readSettings();
     initializeAlertDateRange();
     bindEvents();
