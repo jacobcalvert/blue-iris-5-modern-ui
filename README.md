@@ -2,6 +2,24 @@
 
 A responsive, static web client for Blue Iris 5. It includes one-second live camera tiles, aggregate and per-camera audio, a background audio-monitor mode, selectable UI3-style stream profiles, scrubbable recording playback with audio, alerts, press-and-hold PTZ controls, server-backed PTZ presets, manual recording, triggers, shield/profile controls, and system health.
 
+## Screenshots
+
+### Live camera dashboard
+
+![Blue Iris Mobile live camera dashboard](assets/screenshots/live-dashboard.jpg)
+
+### Camera viewer and PTZ controls
+
+![Blue Iris Mobile camera viewer with PTZ, IR, preset, audio, recording, and stream controls](assets/screenshots/camera-controls.jpg)
+
+### Alert browser
+
+![Blue Iris Mobile alert browser with database, camera, date, zone, sorting, and search filters](assets/screenshots/alerts.jpg)
+
+### Mobile live view
+
+<img src="assets/screenshots/mobile-live.jpg" alt="Blue Iris Mobile responsive live camera view" width="375">
+
 ## Run locally
 
 The app has no runtime CDN dependencies. The checked-in `login.htm` is already built, so
