@@ -51,7 +51,6 @@
     refreshTimer: null,
     snapshotTimer: null,
     clockTimer: null,
-    hls: null,
     clappr: null,
     refreshing: false,
     autoRefresh: true,
@@ -1798,10 +1797,6 @@
   function stopViewerMedia() {
     window.clearInterval(state.viewerSnapshotTimer);
     state.viewerSnapshotTimer = null;
-    if (state.hls) {
-      state.hls.destroy();
-      state.hls = null;
-    }
     if (state.clappr) {
       try {
         state.clappr.destroy();

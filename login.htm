@@ -1974,6 +1974,12 @@ button {
   overflow: hidden;
 }
 
+.camera-viewer-dialog {
+  --bs-modal-width: 1420px;
+  width: calc(100% - 32px);
+  max-width: var(--bs-modal-width);
+}
+
 .viewer-header {
   align-items: center;
   background: rgba(11, 17, 26, 0.96);
@@ -2201,6 +2207,8 @@ body.media-fullscreen-open {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px 14px;
   min-height: 64px;
   padding: 11px 14px;
   border-top: 1px solid var(--bi-border);
@@ -2210,6 +2218,7 @@ body.media-fullscreen-open {
 .viewer-stream-controls {
   display: flex;
   align-items: center;
+  flex: 1 1 365px;
   gap: 9px;
   min-width: 0;
 }
@@ -2217,6 +2226,7 @@ body.media-fullscreen-open {
 .stream-quality-control {
   display: flex;
   align-items: center;
+  flex: 0 0 auto;
   gap: 8px;
   min-height: 40px;
   padding: 0 8px 0 11px;
@@ -2274,7 +2284,11 @@ body.media-fullscreen-open {
 .viewer-actions {
   display: flex;
   align-items: center;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
   gap: 8px;
+  justify-content: flex-end;
+  margin-left: auto;
 }
 
 .viewer-actions .btn {
@@ -2939,6 +2953,11 @@ body.media-fullscreen-open {
 }
 
 @media (max-width: 991.98px) {
+  .camera-viewer-dialog {
+    width: 100vw;
+    max-width: none;
+  }
+
   .login-shell {
     grid-template-columns: 1fr;
     width: min(520px, calc(100% - 36px));
@@ -3356,11 +3375,13 @@ body.media-fullscreen-open {
     align-items: stretch;
     flex-direction: column;
     gap: 9px;
+    justify-content: flex-start;
   }
 
   .viewer-stream-controls {
     width: 100%;
     align-items: stretch;
+    flex: 0 0 auto;
     flex-direction: column;
   }
 
@@ -3385,6 +3406,7 @@ body.media-fullscreen-open {
   .viewer-actions {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-left: 0;
   }
 
   .viewer-actions .media-volume-control {
@@ -3893,7 +3915,7 @@ body.media-fullscreen-open {
   </div>
 
   <div class="modal fade" id="cameraModal" tabindex="-1" aria-labelledby="cameraModalTitle" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-fullscreen-lg-down modal-xl">
+    <div class="modal-dialog modal-dialog-centered modal-fullscreen-lg-down modal-xl camera-viewer-dialog">
       <div class="modal-content viewer-modal">
         <div class="modal-header viewer-header">
           <div>
@@ -5686,7 +5708,6 @@ var Clappr=function(){"use strict";function t(t,e,i){return(e=function(t){var e=
     refreshTimer: null,
     snapshotTimer: null,
     clockTimer: null,
-    hls: null,
     clappr: null,
     refreshing: false,
     autoRefresh: true,
@@ -7433,10 +7454,6 @@ var Clappr=function(){"use strict";function t(t,e,i){return(e=function(t){var e=
   function stopViewerMedia() {
     window.clearInterval(state.viewerSnapshotTimer);
     state.viewerSnapshotTimer = null;
-    if (state.hls) {
-      state.hls.destroy();
-      state.hls = null;
-    }
     if (state.clappr) {
       try {
         state.clappr.destroy();
