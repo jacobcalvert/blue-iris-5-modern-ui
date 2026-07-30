@@ -1947,7 +1947,7 @@
     };
 
     try {
-      state.clappr = new window.Clappr.Player({
+      const player = new window.Clappr.Player({
         source,
         parentId: "#cameraHlsPlayer",
         autoPlay: true,
@@ -1976,15 +1976,12 @@
               xhr.withCredentials = state.client?.isSameOrigin(authenticatedUrl) === true;
             }
           }
-        },
-        events: {
-          onReady() {
-            state.clappr?.play();
-          },
-          onError: handleError
         }
       });
-      state.clappr.on("playererror", handleError);
+      state.clappr = player;
+      const playerEvents = window.Clappr.Events || {};
+      player.on(playerEvents.PLAYER_ERROR || "playererror", handleError);
+      player.on(playerEvents.PLAYBACK_ERROR || "playback:error", handleError);
     } catch (error) {
       handleError(error);
     }

@@ -72,6 +72,14 @@ The build fails if an external stylesheet, script, or manifest reference remains
 result contains non-ASCII text that Blue Iris could serve with the wrong encoding. Commit
 both the source changes and the regenerated `login.htm`.
 
+### HLS player dependency
+
+HLS playback uses the official `@clappr/player` 0.11.16 browser bundle. That release
+combines Clappr core 0.13.2, `@clappr/hlsjs-playback` 1.9.4, and its exact supported
+hls.js 1.6.2 peer dependency. The bundle is pinned locally so the deployed page has no
+runtime CDN dependency; it is not copied from the UI3 reference. Source URLs, hashes,
+and retained licenses are documented in `assets/vendor/README.md`.
+
 ### Remote-origin browser requirements
 
 A static browser app cannot bypass browser security:
@@ -136,7 +144,7 @@ mock client can start, so the hidden control cannot activate demo mode accidenta
 - `assets/js/app.js` - UI state and interaction logic
 - `assets/js/audio-player.js` - streamed Blue Iris clip-audio parser and Web Audio playback
 - `assets/js/mock-data.js` - local demonstration adapter
-- `assets/vendor/` - locally pinned Bootstrap and Blue Iris UI3-compatible Clappr playback libraries
+- `assets/vendor/` - locally pinned Bootstrap and official Clappr/HLS playback libraries
 
 ## Supported API areas
 
