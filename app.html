@@ -36,6 +36,7 @@
     <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m0 0 5-5m-5 5-5-5"/><path d="M4 21h16"/></symbol>
     <symbol id="i-volume" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></symbol>
     <symbol id="i-volume-off" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="m15 9 6 6M21 9l-6 6"/></symbol>
+    <symbol id="i-headphones" viewBox="0 0 24 24"><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><path d="M4 14a2 2 0 0 1 2-2h2v8H6a2 2 0 0 1-2-2v-4ZM20 14a2 2 0 0 0-2-2h-2v8h2a2 2 0 0 0 2-2v-4Z"/></symbol>
     <symbol id="i-up" viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></symbol>
     <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
     <symbol id="i-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
@@ -393,6 +394,31 @@
       </section>
     </main>
 
+    <section id="audioMonitorBar" class="audio-monitor-bar" aria-label="Audio monitor" aria-live="polite" hidden>
+      <audio id="audioMonitorPlayer" preload="none" playsinline></audio>
+      <div class="audio-monitor-bar__identity">
+        <span class="audio-monitor-bar__pulse"></span>
+        <div>
+          <span>Audio monitor</span>
+          <strong id="audioMonitorCameraName">Camera</strong>
+          <small id="audioMonitorStatus">Connecting...</small>
+        </div>
+      </div>
+      <div class="audio-monitor-bar__controls">
+        <button id="audioMonitorPlayToggle" class="icon-button" type="button" aria-label="Pause audio monitor">
+          <svg class="icon"><use href="#i-pause"/></svg>
+        </button>
+        <label class="audio-monitor-volume">
+          <svg class="icon"><use href="#i-volume"/></svg>
+          <input id="audioMonitorVolume" type="range" min="0" max="1" step="0.01" value="0.65"
+            aria-label="Audio monitor volume">
+        </label>
+        <button class="btn btn-danger-soft audio-monitor-stop" type="button" data-action="stop-audio-monitor">
+          Stop
+        </button>
+      </div>
+    </section>
+
     <nav class="mobile-nav" aria-label="Primary">
       <button class="active" data-view="live"><svg class="icon"><use href="#i-grid"/></svg><span>Live</span></button>
       <button data-view="alerts"><svg class="icon"><use href="#i-alert"/></svg><span>Alerts</span><i id="mobileAlertBadge">0</i></button>
@@ -453,6 +479,10 @@
                 </button>
                 <input id="liveVolume" type="range" min="0" max="1" step="0.01" value="0.65" aria-label="Live camera volume">
               </div>
+              <button id="audioMonitorButton" class="btn btn-soft audio-monitor-button" type="button" data-action="toggle-audio-monitor"
+                aria-pressed="false" title="Keep this camera's audio playing while the app is in the background">
+                <svg class="icon"><use href="#i-headphones"/></svg><span>Monitor</span>
+              </button>
               <button id="talkbackButton" class="btn btn-soft talkback-button" type="button" disabled
                 aria-label="Talkback unavailable" aria-pressed="false"
                 title="Checking whether this camera supports browser talkback">

@@ -421,6 +421,10 @@
       return "";
     }
 
+    monitorAudioUrl() {
+      return "";
+    }
+
     viewerSnapshotUrl(camera) {
       return this.imageUrl(camera);
     }

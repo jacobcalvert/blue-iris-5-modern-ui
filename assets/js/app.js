@@ -64,6 +64,13 @@
     liveAudioPlayer: null,
     liveAudioEnabled: false,
     liveVolume: 0.65,
+    audioMonitorCamera: null,
+    audioMonitorActive: false,
+    audioMonitorStatus: "idle",
+    audioMonitorPausedByUser: false,
+    audioMonitorReconnectTimer: null,
+    audioMonitorReconnectAttempts: 0,
+    audioMonitorVolume: 0.65,
     recordingAudio: null,
     recordingVolume: 0.65,
     recordingDurationMs: 0,
@@ -100,7 +107,9 @@
       "clipViewFilter", "clipTimeline", "clipGrid", "healthMetrics", "shieldControl",
       "profileControl", "scheduleStatus", "storageList", "serverDetails", "cameraModal",
       "cameraModalTitle", "cameraModalStatus", "cameraViewport", "cameraStream", "cameraVideo",
-      "cameraHlsPlayer", "liveAudioToggle", "liveVolume",
+      "cameraHlsPlayer", "liveAudioToggle", "liveVolume", "audioMonitorButton",
+      "audioMonitorBar", "audioMonitorPlayer", "audioMonitorCameraName", "audioMonitorStatus",
+      "audioMonitorPlayToggle", "audioMonitorVolume",
       "talkbackButton",
       "viewerTimestamp", "viewerResolution", "streamError", "streamErrorTitle",
       "streamErrorMessage", "streamQualitySelect", "manualRecordButton", "triggerButton",
@@ -125,6 +134,7 @@
       }
       state.gridVolume = clampVolume(saved.gridVolume, state.gridVolume);
       state.liveVolume = clampVolume(saved.liveVolume, state.liveVolume);
+      state.audioMonitorVolume = clampVolume(saved.audioMonitorVolume, state.audioMonitorVolume);
       state.recordingVolume = clampVolume(saved.recordingVolume, state.recordingVolume);
       const isWebPage = window.location.protocol === "http:" || window.location.protocol === "https:";
       const isBlueIrisLoginPage = /\/login\.html?$/i.test(window.location.pathname);
@@ -143,6 +153,7 @@
     el.compactCardsToggle.checked = state.compactCards;
     el.gridVolume.value = String(state.gridVolume);
     el.liveVolume.value = String(state.liveVolume);
+    el.audioMonitorVolume.value = String(state.audioMonitorVolume);
     el.recordingVolume.value = String(state.recordingVolume);
     el.appShell.classList.toggle("compact-cards", state.compactCards);
   }
@@ -156,6 +167,7 @@
       streamQuality: state.streamQuality,
       gridVolume: state.gridVolume,
       liveVolume: state.liveVolume,
+      audioMonitorVolume: state.audioMonitorVolume,
       recordingVolume: state.recordingVolume,
       ...extra
     };
@@ -1408,6 +1420,7 @@
       showToast("No camera audio", "None of the visible online cameras report an audio channel.");
       return;
     }
+    if (state.audioMonitorActive) stopAudioMonitor(false);
     state.gridAudioEnabled = true;
     syncGridAudio();
     updateGridAudioControls();
@@ -1472,6 +1485,7 @@
       updateLiveAudioControls();
       return;
     }
+    if (state.audioMonitorActive) stopAudioMonitor(false);
     const source = state.client.liveAudioUrl(camera.optionValue);
     if (!source) return;
     ensureLiveAudioPlayer();
@@ -1492,6 +1506,234 @@
       saveSettings();
     }
     startLiveAudio();
+  }
+
+  function audioMonitorAvailable(camera = state.activeCamera) {
+    return Boolean(
+      camera &&
+      camera.audio &&
+      camera.isOnline !== false &&
+      !camera.isNoSignal &&
+      !state.client?.isDemo &&
+      state.permissions.audio !== false &&
+      state.client?.monitorAudioUrl &&
+      el.audioMonitorPlayer
+    );
+  }
+
+  function audioMonitorMatches(camera) {
+    return Boolean(
+      camera &&
+      state.audioMonitorCamera &&
+      camera.optionValue === state.audioMonitorCamera.optionValue
+    );
+  }
+
+  function clearAudioMonitorReconnect() {
+    window.clearTimeout(state.audioMonitorReconnectTimer);
+    state.audioMonitorReconnectTimer = null;
+  }
+
+  function updateAudioMonitorControls() {
+    const active = state.audioMonitorActive && Boolean(state.audioMonitorCamera);
+    const monitoringActiveCamera = active && audioMonitorMatches(state.activeCamera);
+    const buttonAvailable = audioMonitorAvailable(state.activeCamera);
+
+    el.audioMonitorButton.disabled = !buttonAvailable;
+    el.audioMonitorButton.classList.toggle("is-active", monitoringActiveCamera);
+    el.audioMonitorButton.setAttribute("aria-pressed", String(monitoringActiveCamera));
+    el.audioMonitorButton.setAttribute(
+      "aria-label",
+      monitoringActiveCamera ? "Stop background audio monitor" : "Start background audio monitor"
+    );
+    el.audioMonitorButton.querySelector("span").textContent =
+      monitoringActiveCamera ? "Monitoring" : "Monitor";
+
+    el.audioMonitorBar.hidden = !active;
+    if (!active) return;
+
+    const labels = {
+      loading: "Connecting...",
+      playing: "Playing in background",
+      buffering: "Buffering...",
+      reconnecting: "Reconnecting...",
+      paused: "Paused",
+      error: "Stream unavailable - tap play to retry"
+    };
+    el.audioMonitorCameraName.textContent =
+      state.audioMonitorCamera.optionDisplay || state.audioMonitorCamera.optionValue || "Camera";
+    el.audioMonitorStatus.textContent = labels[state.audioMonitorStatus] || "Audio monitor active";
+    el.audioMonitorBar.dataset.status = state.audioMonitorStatus;
+    el.audioMonitorVolume.value = String(state.audioMonitorVolume);
+    const paused = el.audioMonitorPlayer.paused || state.audioMonitorStatus === "error";
+    setButtonIcon(el.audioMonitorPlayToggle, paused ? "play" : "pause");
+    el.audioMonitorPlayToggle.setAttribute(
+      "aria-label",
+      paused ? "Resume audio monitor" : "Pause audio monitor"
+    );
+  }
+
+  function updateAudioMonitorMediaSession() {
+    if (!("mediaSession" in navigator)) return;
+    try {
+      if (!state.audioMonitorActive || !state.audioMonitorCamera) {
+        navigator.mediaSession.metadata = null;
+        navigator.mediaSession.playbackState = "none";
+        return;
+      }
+      if ("MediaMetadata" in window) {
+        navigator.mediaSession.metadata = new window.MediaMetadata({
+          title: state.audioMonitorCamera.optionDisplay || state.audioMonitorCamera.optionValue,
+          artist: "Blue Iris audio monitor",
+          album: "Live camera audio"
+        });
+      }
+      navigator.mediaSession.playbackState =
+        state.audioMonitorStatus === "playing" ? "playing" : "paused";
+    } catch {
+      // Background audio remains usable when lock-screen metadata is unsupported.
+    }
+  }
+
+  async function playAudioMonitor(reload = false) {
+    if (!state.audioMonitorActive || !state.audioMonitorCamera) return;
+    const player = el.audioMonitorPlayer;
+    if (reload || !player.src) {
+      const source = state.client?.monitorAudioUrl?.(state.audioMonitorCamera.optionValue);
+      if (!source) {
+        state.audioMonitorStatus = "error";
+        updateAudioMonitorControls();
+        updateAudioMonitorMediaSession();
+        return;
+      }
+      player.src = source;
+      player.load();
+    }
+    player.volume = state.audioMonitorVolume;
+    state.audioMonitorPausedByUser = false;
+    state.audioMonitorStatus = "loading";
+    updateAudioMonitorControls();
+    try {
+      await player.play();
+    } catch (error) {
+      if (!state.audioMonitorActive) return;
+      state.audioMonitorStatus = "error";
+      updateAudioMonitorControls();
+      updateAudioMonitorMediaSession();
+      if (state.audioMonitorReconnectAttempts === 0) {
+        showToast(
+          "Audio monitor unavailable",
+          error?.message || "This browser could not play Blue Iris's native WAV audio stream.",
+          "error"
+        );
+      }
+      scheduleAudioMonitorReconnect();
+    }
+  }
+
+  function scheduleAudioMonitorReconnect() {
+    if (
+      !state.audioMonitorActive ||
+      state.audioMonitorPausedByUser ||
+      state.audioMonitorReconnectTimer
+    ) return;
+    state.audioMonitorReconnectAttempts += 1;
+    if (state.audioMonitorReconnectAttempts > 6) {
+      state.audioMonitorStatus = "error";
+      updateAudioMonitorControls();
+      updateAudioMonitorMediaSession();
+      return;
+    }
+    state.audioMonitorStatus = "reconnecting";
+    updateAudioMonitorControls();
+    const delay = Math.min(1000 * (2 ** (state.audioMonitorReconnectAttempts - 1)), 8000);
+    state.audioMonitorReconnectTimer = window.setTimeout(() => {
+      state.audioMonitorReconnectTimer = null;
+      playAudioMonitor(true);
+    }, delay);
+  }
+
+  function pauseAudioMonitor() {
+    if (!state.audioMonitorActive) return;
+    state.audioMonitorPausedByUser = true;
+    clearAudioMonitorReconnect();
+    el.audioMonitorPlayer.pause();
+    state.audioMonitorStatus = "paused";
+    updateAudioMonitorControls();
+    updateAudioMonitorMediaSession();
+  }
+
+  function stopAudioMonitor(notify = false) {
+    const cameraName =
+      state.audioMonitorCamera?.optionDisplay || state.audioMonitorCamera?.optionValue || "Camera";
+    state.audioMonitorActive = false;
+    state.audioMonitorPausedByUser = false;
+    state.audioMonitorStatus = "idle";
+    state.audioMonitorReconnectAttempts = 0;
+    clearAudioMonitorReconnect();
+    el.audioMonitorPlayer.pause();
+    el.audioMonitorPlayer.removeAttribute("src");
+    el.audioMonitorPlayer.load();
+    state.audioMonitorCamera = null;
+    updateAudioMonitorControls();
+    updateAudioMonitorMediaSession();
+    if (notify) showToast("Audio monitor stopped", `${cameraName} is no longer playing.`);
+  }
+
+  function startAudioMonitor(camera = state.activeCamera) {
+    if (!audioMonitorAvailable(camera)) {
+      showToast(
+        "Audio monitor unavailable",
+        "This camera, account, or browser does not provide a native live-audio stream.",
+        "error"
+      );
+      return;
+    }
+    if (state.audioMonitorActive) stopAudioMonitor(false);
+    stopGridAudio();
+    stopLiveAudio();
+    state.audioMonitorCamera = { ...camera };
+    state.audioMonitorActive = true;
+    state.audioMonitorStatus = "loading";
+    state.audioMonitorPausedByUser = false;
+    state.audioMonitorReconnectAttempts = 0;
+    updateAudioMonitorControls();
+    updateAudioMonitorMediaSession();
+    playAudioMonitor(true);
+  }
+
+  function toggleAudioMonitor() {
+    if (state.audioMonitorActive && audioMonitorMatches(state.activeCamera)) {
+      stopAudioMonitor(true);
+    } else {
+      startAudioMonitor(state.activeCamera);
+    }
+  }
+
+  function toggleAudioMonitorPlayback() {
+    if (!state.audioMonitorActive) return;
+    if (el.audioMonitorPlayer.paused) {
+      state.audioMonitorReconnectAttempts = 0;
+      playAudioMonitor(state.audioMonitorStatus === "error");
+    } else {
+      pauseAudioMonitor();
+    }
+  }
+
+  function bindAudioMonitorMediaSession() {
+    if (!navigator.mediaSession?.setActionHandler) return;
+    const handlers = {
+      play: () => playAudioMonitor(state.audioMonitorStatus === "error"),
+      pause: pauseAudioMonitor,
+      stop: () => stopAudioMonitor(true)
+    };
+    Object.entries(handlers).forEach(([action, handler]) => {
+      try {
+        navigator.mediaSession.setActionHandler(action, handler);
+      } catch {
+        // The browser may expose Media Session without every action.
+      }
+    });
   }
 
   function navigate(view) {
@@ -1613,7 +1855,8 @@
     setStreamMode(state.client.isDemo ? "snapshot" : "mjpeg");
     bootstrap.Modal.getOrCreateInstance(el.cameraModal).show();
     updateLiveAudioControls();
-    if (state.liveVolume > 0) startLiveAudio();
+    updateAudioMonitorControls();
+    if (state.liveVolume > 0 && !state.audioMonitorActive) startLiveAudio();
     loadPtzMetadata(camera);
   }
 
@@ -2441,6 +2684,7 @@
     stopPtzMovement({ hardStop: true, quiet: true });
     stopGridAudio();
     stopLiveAudio();
+    stopAudioMonitor(false);
     stopRecordingPlayback();
     stopViewerMedia();
     state.exportJobs.forEach((job) => {
@@ -2556,6 +2800,10 @@
         toggleMediaFullscreen(el.recordingPlayer);
       } else if (action === "exit-media-fullscreen") {
         exitMediaFullscreen();
+      } else if (action === "toggle-audio-monitor") {
+        toggleAudioMonitor();
+      } else if (action === "stop-audio-monitor") {
+        stopAudioMonitor(true);
       } else if (action === "toggle-record") {
         toggleManualRecord();
       } else if (action === "trigger-camera") {
@@ -2713,6 +2961,40 @@
     el.recordingStream.addEventListener("load", () => {
       state.recordingFramePending = false;
     });
+    el.audioMonitorPlayToggle.addEventListener("click", toggleAudioMonitorPlayback);
+    el.audioMonitorVolume.addEventListener("input", () => {
+      state.audioMonitorVolume = clampVolume(el.audioMonitorVolume.value, state.audioMonitorVolume);
+      el.audioMonitorPlayer.volume = state.audioMonitorVolume;
+      saveSettings();
+    });
+    el.audioMonitorPlayer.addEventListener("playing", () => {
+      if (!state.audioMonitorActive) return;
+      clearAudioMonitorReconnect();
+      state.audioMonitorReconnectAttempts = 0;
+      state.audioMonitorStatus = "playing";
+      updateAudioMonitorControls();
+      updateAudioMonitorMediaSession();
+    });
+    ["waiting", "stalled"].forEach((eventName) => {
+      el.audioMonitorPlayer.addEventListener(eventName, () => {
+        if (!state.audioMonitorActive || state.audioMonitorPausedByUser) return;
+        state.audioMonitorStatus = "buffering";
+        updateAudioMonitorControls();
+      });
+    });
+    ["error", "ended"].forEach((eventName) => {
+      el.audioMonitorPlayer.addEventListener(eventName, () => {
+        if (!state.audioMonitorActive) return;
+        scheduleAudioMonitorReconnect();
+      });
+    });
+    el.audioMonitorPlayer.addEventListener("pause", () => {
+      if (!state.audioMonitorActive || state.audioMonitorStatus === "reconnecting") return;
+      state.audioMonitorStatus = state.audioMonitorPausedByUser ? "paused" : "buffering";
+      updateAudioMonitorControls();
+      updateAudioMonitorMediaSession();
+    });
+    bindAudioMonitorMediaSession();
 
     el.groupSelect.addEventListener("change", () => {
       state.selectedGroup = el.groupSelect.value;
@@ -2798,6 +3080,7 @@
       state.activeCamera = null;
       state.ptzMetadata = null;
       state.ptzMetadataCameraId = "";
+      updateAudioMonitorControls();
       updateTalkbackSupport();
     });
     el.recordingModal.addEventListener("hidden.bs.modal", () => {
@@ -2808,7 +3091,16 @@
     });
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) stopPtzMovement({ hardStop: true, quiet: true });
-      else refreshVisibleSnapshots();
+      else {
+        refreshVisibleSnapshots();
+        if (
+          state.audioMonitorActive &&
+          !state.audioMonitorPausedByUser &&
+          el.audioMonitorPlayer.paused
+        ) {
+          playAudioMonitor(state.audioMonitorStatus === "error");
+        }
+      }
     });
     window.addEventListener("blur", () => stopPtzMovement({ hardStop: true, quiet: true }));
     document.addEventListener("fullscreenchange", syncMediaFullscreenState);
@@ -2836,6 +3128,7 @@
     bindEvents();
     updateGridAudioControls();
     updateLiveAudioControls();
+    updateAudioMonitorControls();
     updateRecordingPlayButton();
     updateRecordingAudioControls();
     restoreCachedSession().then((restored) => {

@@ -456,6 +456,13 @@
       });
     }
 
+    monitorAudioUrl(camera) {
+      return this.mediaUrl(`audio/${encodeURIComponent(camera)}/temp.wav`, {
+        cache: 1,
+        time: Date.now()
+      });
+    }
+
     hlsUrl(camera, profile = {}, cameraInfo = {}) {
       return this.mediaUrl(
         `h264/${encodeURIComponent(camera)}/temp.m3u8`,

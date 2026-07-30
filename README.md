@@ -1,6 +1,6 @@
 # Blue Iris Mobile
 
-A responsive, static web client for Blue Iris 5. It includes one-second live camera tiles, aggregate and per-camera audio, selectable UI3-style stream profiles, scrubbable recording playback with audio, alerts, press-and-hold PTZ controls, server-backed PTZ presets, manual recording, triggers, shield/profile controls, and system health.
+A responsive, static web client for Blue Iris 5. It includes one-second live camera tiles, aggregate and per-camera audio, a background audio-monitor mode, selectable UI3-style stream profiles, scrubbable recording playback with audio, alerts, press-and-hold PTZ controls, server-backed PTZ presets, manual recording, triggers, shield/profile controls, and system health.
 
 ## Run locally
 
@@ -63,7 +63,20 @@ A static browser app cannot bypass browser security:
 - When the app and Blue Iris share a hostname, saved HTTP addresses are automatically upgraded to the page's HTTPS origin. Absolute `/h264/` URLs emitted inside Blue Iris HLS playlists are also routed back through the configured Blue Iris origin, preventing internal proxy hostnames from creating mixed-content or CORS failures.
 - Serving the app from Blue Iris itself, or placing both behind the same HTTPS reverse proxy, avoids these issues.
 - A reverse proxy must forward the complete Blue Iris media prefixes, especially `/h264/`. HLS playlists reference short-lived numbered `.ts` files under that same path, and `.m3u8` responses must not be cached.
-- Audio requires the low-latency `/video/` and `/file/clips/` routes to pass through unchanged. Browser autoplay rules require an explicit click before the all-camera audio mix can begin.
+- Audio requires the `/audio/`, low-latency `/video/`, and `/file/clips/` routes to pass through unchanged. Browser autoplay rules require an explicit click before audio can begin.
+
+## Background audio monitor
+
+The single-camera viewer's **Monitor** control starts Blue Iris's native
+`/audio/{camera}/temp.wav` stream in a persistent HTML audio player. It keeps playing after
+the camera dialog closes, exposes pause/stop metadata through the browser's lock-screen media
+controls, and reconnects transiently interrupted streams. The floating monitor bar controls
+volume, pause/resume, and stop.
+
+This native media path is substantially more background-friendly than the app's Web Audio
+decoder, but the operating system and browser retain final control over lock-screen playback.
+Start Monitor with a tap before locking the phone. HTTPS, adding the app to the home screen,
+and disabling browser-specific battery restrictions generally provide the most reliable result.
 
 ## PTZ, presets, and talkback
 
@@ -115,6 +128,6 @@ mock client can start, so the hidden control cannot activate demo mode accidenta
 - `status`
 - `ptz`
 - `trigger`
-- `/image`, `/mjpg`, `/h264`, `/video`, `/alerts`, `/thumbs`, and `/file/clips` media routes
+- `/image`, `/mjpg`, `/h264`, `/audio`, `/video`, `/alerts`, `/thumbs`, and `/file/clips` media routes
 
 Destructive administration operations such as deleting clips, rebooting the host, and database maintenance are intentionally not exposed.

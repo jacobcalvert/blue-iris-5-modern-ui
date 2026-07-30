@@ -1774,6 +1774,152 @@ button {
   display: none;
 }
 
+.audio-monitor-bar {
+  position: fixed;
+  z-index: 1045;
+  right: 20px;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  width: min(610px, calc(100vw - 40px));
+  min-height: 76px;
+  padding: 12px 14px;
+  border: 1px solid rgba(var(--bi-primary-rgb), 0.25);
+  border-radius: 17px;
+  background: rgba(11, 18, 27, 0.96);
+  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(18px);
+}
+
+.audio-monitor-bar[hidden] {
+  display: none;
+}
+
+.audio-monitor-bar audio {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.audio-monitor-bar__identity {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  gap: 11px;
+}
+
+.audio-monitor-bar__identity > div {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.audio-monitor-bar__identity span:not(.audio-monitor-bar__pulse) {
+  color: var(--bi-primary);
+  font-size: 0.57rem;
+  font-weight: 730;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.audio-monitor-bar__identity strong,
+.audio-monitor-bar__identity small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.audio-monitor-bar__identity strong {
+  color: #e3edf4;
+  font-size: 0.82rem;
+  font-weight: 660;
+}
+
+.audio-monitor-bar__identity small {
+  color: #75869a;
+  font-size: 0.62rem;
+}
+
+.audio-monitor-bar__pulse {
+  position: relative;
+  flex: 0 0 auto;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--bi-primary);
+  box-shadow: 0 0 0 5px rgba(var(--bi-primary-rgb), 0.1);
+}
+
+.audio-monitor-bar[data-status="playing"] .audio-monitor-bar__pulse::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border: 1px solid rgba(var(--bi-primary-rgb), 0.55);
+  border-radius: inherit;
+  animation: monitor-pulse 1.8s ease-out infinite;
+}
+
+.audio-monitor-bar[data-status="paused"] .audio-monitor-bar__pulse,
+.audio-monitor-bar[data-status="error"] .audio-monitor-bar__pulse {
+  background: #718095;
+  box-shadow: none;
+}
+
+.audio-monitor-bar[data-status="error"] .audio-monitor-bar__pulse {
+  background: var(--bi-danger);
+}
+
+.audio-monitor-bar__controls,
+.audio-monitor-volume {
+  display: flex;
+  align-items: center;
+}
+
+.audio-monitor-bar__controls {
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+.audio-monitor-volume {
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--bi-border);
+  border-radius: 11px;
+  background: rgba(5, 10, 16, 0.7);
+}
+
+.audio-monitor-volume .icon {
+  width: 16px;
+  height: 16px;
+  color: #8fa0b2;
+}
+
+.audio-monitor-volume input {
+  width: 88px;
+  accent-color: var(--bi-primary);
+}
+
+.audio-monitor-stop {
+  min-height: 40px;
+  padding-inline: 12px;
+}
+
+.audio-monitor-button.is-active {
+  border-color: rgba(var(--bi-primary-rgb), 0.46);
+  color: #e6fffd;
+  background: rgba(var(--bi-primary-rgb), 0.14);
+}
+
+@keyframes monitor-pulse {
+  from { opacity: 0.8; transform: scale(0.75); }
+  to { opacity: 0; transform: scale(1.65); }
+}
+
 .modal {
   --bs-modal-bg: #0c121b;
   --bs-modal-border-color: var(--bi-border);
@@ -2826,6 +2972,13 @@ body.media-fullscreen-open {
     backdrop-filter: blur(18px);
   }
 
+  .audio-monitor-bar {
+    right: 12px;
+    bottom: calc(88px + env(safe-area-inset-bottom));
+    left: 12px;
+    width: auto;
+  }
+
   .mobile-nav button {
     position: relative;
     display: flex;
@@ -3212,7 +3365,7 @@ body.media-fullscreen-open {
 
   .viewer-actions {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .viewer-actions .media-volume-control {
@@ -3222,6 +3375,30 @@ body.media-fullscreen-open {
   .viewer-actions .media-volume-control input[type="range"] {
     flex: 1;
     width: auto;
+  }
+
+  .audio-monitor-bar {
+    align-items: stretch;
+    flex-wrap: wrap;
+    gap: 9px;
+  }
+
+  .audio-monitor-bar__identity,
+  .audio-monitor-bar__controls {
+    width: 100%;
+  }
+
+  .audio-monitor-bar__controls {
+    justify-content: space-between;
+  }
+
+  .audio-monitor-volume {
+    flex: 1;
+  }
+
+  .audio-monitor-volume input {
+    width: auto;
+    flex: 1;
   }
 
   .recording-controls {
