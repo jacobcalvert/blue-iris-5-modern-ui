@@ -1894,6 +1894,91 @@ button {
   background: #030609;
 }
 
+.media-fullscreen-exit {
+  position: absolute;
+  z-index: 12;
+  top: max(14px, env(safe-area-inset-top));
+  right: max(14px, env(safe-area-inset-right));
+  display: none;
+  color: #eef7fb;
+  background: rgba(8, 13, 20, 0.78);
+  border-color: rgba(221, 234, 244, 0.22);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.36);
+  backdrop-filter: blur(10px);
+}
+
+.camera-viewport:fullscreen,
+.camera-viewport:-webkit-full-screen,
+.recording-player:fullscreen,
+.recording-player:-webkit-full-screen,
+.media-fullscreen-fallback {
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: none !important;
+  max-height: none !important;
+  aspect-ratio: auto !important;
+  background: #000;
+}
+
+.media-fullscreen-fallback {
+  position: fixed !important;
+  z-index: 2000;
+  inset: 0;
+}
+
+.camera-viewport:fullscreen > img,
+.camera-viewport:fullscreen > video,
+.camera-viewport:fullscreen .camera-hls-player,
+.camera-viewport:fullscreen .camera-hls-player > div,
+.camera-viewport:fullscreen .camera-hls-player .clappr-player,
+.camera-viewport:fullscreen .camera-hls-player [data-player],
+.camera-viewport:fullscreen .camera-hls-player video,
+.camera-viewport:-webkit-full-screen > img,
+.camera-viewport:-webkit-full-screen > video,
+.camera-viewport:-webkit-full-screen .camera-hls-player,
+.camera-viewport:-webkit-full-screen .camera-hls-player > div,
+.camera-viewport:-webkit-full-screen .camera-hls-player .clappr-player,
+.camera-viewport:-webkit-full-screen .camera-hls-player [data-player],
+.camera-viewport:-webkit-full-screen .camera-hls-player video,
+.camera-viewport.media-fullscreen-fallback > img,
+.camera-viewport.media-fullscreen-fallback > video,
+.camera-viewport.media-fullscreen-fallback .camera-hls-player,
+.camera-viewport.media-fullscreen-fallback .camera-hls-player > div,
+.camera-viewport.media-fullscreen-fallback .camera-hls-player .clappr-player,
+.camera-viewport.media-fullscreen-fallback .camera-hls-player [data-player],
+.camera-viewport.media-fullscreen-fallback .camera-hls-player video,
+.recording-player:fullscreen > img,
+.recording-player:-webkit-full-screen > img,
+.recording-player.media-fullscreen-fallback > img {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  aspect-ratio: auto !important;
+  object-fit: contain;
+}
+
+.camera-viewport:fullscreen .media-fullscreen-exit,
+.camera-viewport:-webkit-full-screen .media-fullscreen-exit,
+.recording-player:fullscreen .media-fullscreen-exit,
+.recording-player:-webkit-full-screen .media-fullscreen-exit,
+.media-fullscreen-fallback .media-fullscreen-exit {
+  display: inline-grid;
+}
+
+.camera-viewport:fullscreen .viewer-overlay--top,
+.camera-viewport:-webkit-full-screen .viewer-overlay--top,
+.camera-viewport.media-fullscreen-fallback .viewer-overlay--top {
+  right: max(68px, calc(env(safe-area-inset-right) + 58px));
+}
+
+body.media-fullscreen-open {
+  overflow: hidden;
+}
+
 .viewer-overlay {
   position: absolute;
   z-index: 2;
@@ -2790,8 +2875,8 @@ button {
   }
 
   .viewer-body {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto;
+    display: flex;
+    flex-direction: column;
     overflow-y: auto;
   }
 
@@ -2807,13 +2892,19 @@ button {
     aspect-ratio: 16 / 9;
   }
 
+  .camera-viewport {
+    width: 100%;
+    flex: 0 0 auto;
+  }
+
   .viewer-toolbar {
-    grid-column: 1;
+    width: 100%;
+    flex: 0 0 auto;
   }
 
   .ptz-panel {
-    grid-column: 1;
-    grid-row: 3;
+    width: 100%;
+    flex: 0 0 auto;
     border-top: 1px solid var(--bi-border);
     border-left: 0;
   }

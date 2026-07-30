@@ -106,7 +106,7 @@
       "streamErrorMessage", "streamQualitySelect", "manualRecordButton", "triggerButton",
       "ptzPanel", "irModeControl", "irStatus", "presetControl", "presetStatus", "presetEditor", "presetNumber",
       "presetDescription", "presetEditorLabel", "presetSaveButton", "snapshotDownload",
-      "recordingModal", "recordingModalTitle",
+      "recordingModal", "recordingModalTitle", "recordingPlayer",
       "recordingTypeLabel", "recordingStream", "recordingTimestamp", "recordingResolution",
       "recordingPlayToggle", "recordingCurrentTime", "recordingSeek", "recordingDuration",
       "recordingAudioToggle", "recordingVolume",
@@ -2475,6 +2475,58 @@
     el.passwordInput.focus();
   }
 
+  function fullscreenElement() {
+    return document.fullscreenElement || document.webkitFullscreenElement || null;
+  }
+
+  function syncMediaFullscreenState() {
+    const fallback = document.querySelector(".media-fullscreen-fallback");
+    document.body.classList.toggle("media-fullscreen-open", Boolean(fullscreenElement() || fallback));
+  }
+
+  async function exitMediaFullscreen() {
+    document.querySelectorAll(".media-fullscreen-fallback").forEach((target) =>
+      target.classList.remove("media-fullscreen-fallback")
+    );
+    const exit = document.exitFullscreen || document.webkitExitFullscreen;
+    if (fullscreenElement() && exit) {
+      try {
+        await Promise.resolve(exit.call(document));
+      } catch {
+        // The browser may already be in the process of leaving fullscreen.
+      }
+    }
+    syncMediaFullscreenState();
+  }
+
+  async function toggleMediaFullscreen(target) {
+    if (!target) return;
+    if (fullscreenElement() === target || target.classList.contains("media-fullscreen-fallback")) {
+      await exitMediaFullscreen();
+      return;
+    }
+
+    const request = target.requestFullscreen || target.webkitRequestFullscreen;
+    if (request) {
+      try {
+        const result = request.call(target);
+        await Promise.race([
+          Promise.resolve(result).catch(() => undefined),
+          new Promise((resolve) => window.setTimeout(resolve, 300))
+        ]);
+        if (fullscreenElement() === target) {
+          syncMediaFullscreenState();
+          return;
+        }
+      } catch {
+        // Some mobile browsers reject element fullscreen; use a viewport-filling fallback.
+      }
+    }
+
+    target.classList.add("media-fullscreen-fallback");
+    syncMediaFullscreenState();
+  }
+
   function handleGlobalClick(event) {
     const viewButton = event.target.closest("[data-view]");
     if (viewButton) {
@@ -2499,7 +2551,11 @@
       } else if (action === "cycle-shield") {
         cycleShield();
       } else if (action === "fullscreen-viewer") {
-        el.cameraViewport.requestFullscreen?.().catch(() => {});
+        toggleMediaFullscreen(el.cameraViewport);
+      } else if (action === "fullscreen-recording") {
+        toggleMediaFullscreen(el.recordingPlayer);
+      } else if (action === "exit-media-fullscreen") {
+        exitMediaFullscreen();
       } else if (action === "toggle-record") {
         toggleManualRecord();
       } else if (action === "trigger-camera") {
@@ -2734,6 +2790,7 @@
     });
 
     el.cameraModal.addEventListener("hidden.bs.modal", () => {
+      exitMediaFullscreen();
       stopPtzMovement({ hardStop: true, quiet: true });
       closePresetEditor();
       stopLiveAudio();
@@ -2744,6 +2801,7 @@
       updateTalkbackSupport();
     });
     el.recordingModal.addEventListener("hidden.bs.modal", () => {
+      exitMediaFullscreen();
       stopRecordingPlayback();
       state.activeRecording = null;
       state.recordingDurationMs = 0;
@@ -2753,6 +2811,13 @@
       else refreshVisibleSnapshots();
     });
     window.addEventListener("blur", () => stopPtzMovement({ hardStop: true, quiet: true }));
+    document.addEventListener("fullscreenchange", syncMediaFullscreenState);
+    document.addEventListener("webkitfullscreenchange", syncMediaFullscreenState);
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && document.querySelector(".media-fullscreen-fallback")) {
+        exitMediaFullscreen();
+      }
+    });
     window.addEventListener("pagehide", () => {
       const movement = state.ptzActiveMovement;
       if (!movement) return;
