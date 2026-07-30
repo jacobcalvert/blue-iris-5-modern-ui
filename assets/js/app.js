@@ -689,7 +689,7 @@
       exportOptions.startms = Math.max(0, Math.floor(Number(item.offset || 0)));
       exportOptions.msec = duration;
     } else if (duration > 0) {
-      // Match UI3's safe fallback when the alert offset is not explicitly marked
+      // Use a conservative fallback when the alert offset is not explicitly marked
       // as milliseconds: export from the clip start through the end of the alert.
       exportOptions.startms = 0;
       exportOptions.msec = Math.max(duration, Math.floor(Number(item.offset || 0)) + duration);

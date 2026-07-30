@@ -1,6 +1,6 @@
 # Blue Iris Mobile
 
-A responsive, static web client for Blue Iris 5. It includes one-second live camera tiles, aggregate and per-camera audio, a background audio-monitor mode, selectable UI3-style stream profiles, scrubbable recording playback with audio, alerts, press-and-hold PTZ controls, server-backed PTZ presets, manual recording, triggers, shield/profile controls, and system health.
+A responsive, static web client for Blue Iris 5. It includes one-second live camera tiles, aggregate and per-camera audio, a background audio-monitor mode, selectable live-stream resolution profiles, scrubbable recording playback with audio, alerts, press-and-hold PTZ controls, server-backed PTZ presets, manual recording, triggers, shield/profile controls, and system health.
 
 ## Screenshots
 
@@ -45,7 +45,7 @@ The active session key is saved in this site's browser storage so a hard refresh
 
 When the app is served as Blue Iris's `login.htm`, the server field defaults to the
 containing Blue Iris URL, including a configured virtual directory. The API client removes
-entry-page names before requesting `json` and, like UI3, falls back to the server origin if
+entry-page names before requesting `json` and falls back to the server origin if
 the virtual-directory endpoint returns 404 or HTML.
 
 ### Install in the Blue Iris WWW folder
@@ -77,8 +77,8 @@ both the source changes and the regenerated `login.htm`.
 HLS playback uses the official `@clappr/player` 0.11.16 browser bundle. That release
 combines Clappr core 0.13.2, `@clappr/hlsjs-playback` 1.9.4, and its exact supported
 hls.js 1.6.2 peer dependency. The bundle is pinned locally so the deployed page has no
-runtime CDN dependency; it is not copied from the UI3 reference. Source URLs, hashes,
-and retained licenses are documented in `assets/vendor/README.md`.
+runtime CDN dependency and is built from the official package releases. Dependency
+licenses are retained under `assets/vendor/licenses`.
 
 ### Remote-origin browser requirements
 
@@ -121,8 +121,8 @@ can call a preset. Blue Iris administrator access is required to assign the came
 position to a preset and save its description.
 
 Blue Iris may report a `talksamplerate` for cameras configured for two-way audio. The
-documented JSON web API does not define a microphone-upload transport, and UI3 does not
-implement one, so this app reports the capability but keeps Talk disabled. This avoids
+documented JSON web API does not define a microphone-upload transport, so this app reports
+the capability but keeps Talk disabled. This avoids
 requesting microphone access for a control that the server cannot receive. Talkback can be
 enabled later only if Blue Iris exposes a supported browser transport for it.
 

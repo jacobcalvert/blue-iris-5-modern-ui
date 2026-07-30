@@ -5496,7 +5496,7 @@ var Clappr=function(){"use strict";function t(t,e,i){return(e=function(t){var e=
     url.search = "";
     url.hash = "";
     url.pathname = url.pathname
-      .replace(/\/(?:login|xlogin|default|ui3|index)\.html?\/?$/i, "/")
+      .replace(/\/(?:login|xlogin|default|index)\.html?\/?$/i, "/")
       .replace(/\/+$/, "");
     return url.href.replace(/\/+$/, "");
   }
@@ -5861,8 +5861,8 @@ var Clappr=function(){"use strict";function t(t,e,i){return(e=function(t){var e=
     }
 
     exportStatus() {
-      // UI3 polls the export queue without a path. Sending the returned export
-      // product path back here can be interpreted as a new (non-BVR) source.
+      // Poll the export queue without a path. Sending the returned export product
+      // path back here can be interpreted as a new (non-BVR) source.
       return this.request("export");
     }
 
@@ -7003,7 +7003,7 @@ var Clappr=function(){"use strict";function t(t,e,i){return(e=function(t){var e=
       exportOptions.startms = Math.max(0, Math.floor(Number(item.offset || 0)));
       exportOptions.msec = duration;
     } else if (duration > 0) {
-      // Match UI3's safe fallback when the alert offset is not explicitly marked
+      // Use a conservative fallback when the alert offset is not explicitly marked
       // as milliseconds: export from the clip start through the end of the alert.
       exportOptions.startms = 0;
       exportOptions.msec = Math.max(duration, Math.floor(Number(item.offset || 0)) + duration);

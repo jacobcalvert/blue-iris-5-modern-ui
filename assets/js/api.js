@@ -38,7 +38,7 @@
     url.search = "";
     url.hash = "";
     url.pathname = url.pathname
-      .replace(/\/(?:login|xlogin|default|ui3|index)\.html?\/?$/i, "/")
+      .replace(/\/(?:login|xlogin|default|index)\.html?\/?$/i, "/")
       .replace(/\/+$/, "");
     return url.href.replace(/\/+$/, "");
   }
@@ -403,8 +403,8 @@
     }
 
     exportStatus() {
-      // UI3 polls the export queue without a path. Sending the returned export
-      // product path back here can be interpreted as a new (non-BVR) source.
+      // Poll the export queue without a path. Sending the returned export product
+      // path back here can be interpreted as a new (non-BVR) source.
       return this.request("export");
     }
 
