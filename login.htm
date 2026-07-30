@@ -5056,12 +5056,11 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
         const url = new URL(requestUrl, `${this.baseUrl}/`);
         const isHlsMedia = /\/h264\/.*\.(?:m3u8|ts)$/i.test(url.pathname);
 
-        // Blue Iris may write absolute HTTP URLs into an HLS playlist because
-        // the reverse proxy talks HTTP to the server. ProxyPassReverse cannot
-        // rewrite those playlist-body URLs. Route only Blue Iris HLS media
-        // back through the configured HTTPS origin before the browser has a
-        // chance to reject the request as mixed content.
-        if (isHlsMedia && baseUrl.protocol === "https:" && url.protocol === "http:") {
+        // Blue Iris may write its direct HTTP(S) origin into an HLS playlist.
+        // ProxyPassReverse cannot rewrite URLs in a playlist response body.
+        // Route only Blue Iris HLS media back through the configured origin so
+        // internal hostnames do not cause mixed-content or CORS failures.
+        if (isHlsMedia && url.origin !== baseUrl.origin) {
           url.protocol = baseUrl.protocol;
           url.host = baseUrl.host;
         }
@@ -7130,7 +7129,7 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
                 ? state.client.hlsRequestUrl(url)
                 : url;
               xhr.open("GET", authenticatedUrl, true);
-              xhr.withCredentials = Boolean(state.client?.isSameOrigin);
+              xhr.withCredentials = state.client?.isSameOrigin(authenticatedUrl) === true;
             }
           }
         },
