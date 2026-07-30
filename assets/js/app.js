@@ -7,6 +7,14 @@
     clips: { eyebrow: "Archive", title: "Recordings" },
     system: { eyebrow: "Operations", title: "System" }
   };
+  const THEME_CONFIG = Object.freeze({
+    light: { bootstrap: "light", color: "#f3f6fa" },
+    dark: { bootstrap: "dark", color: "#080c13" },
+    "solarized-light": { bootstrap: "light", color: "#fdf6e3" },
+    "solarized-dark": { bootstrap: "dark", color: "#002b36" },
+    cobalt: { bootstrap: "dark", color: "#15232d" },
+    "high-contrast": { bootstrap: "dark", color: "#000000" }
+  });
 
   const STREAM_PROFILES = [
     { id: "native", label: "Native", native: true, stream: 0 },
@@ -55,6 +63,7 @@
     refreshing: false,
     autoRefresh: true,
     compactCards: false,
+    theme: "dark",
     streamQuality: "1080p",
     activeStreamMode: "mjpeg",
     gridAudioPlayers: new Map(),
@@ -119,8 +128,23 @@
       "recordingPlayToggle", "recordingCurrentTime", "recordingSeek", "recordingDuration",
       "recordingAudioToggle", "recordingVolume",
       "recordingFlagButton", "recordingExportButton", "recordingCameraName", "recordingDetails", "settingsModal", "settingsServerName",
-      "settingsServerUrl", "autoRefreshToggle", "compactCardsToggle", "toastRegion"
+      "settingsServerUrl", "themeOptions", "autoRefreshToggle", "compactCardsToggle", "toastRegion"
     ].forEach((id) => { el[id] = document.getElementById(id); });
+  }
+
+  function applyTheme(theme) {
+    const selectedTheme = Object.hasOwn(THEME_CONFIG, theme) ? theme : "dark";
+    const config = THEME_CONFIG[selectedTheme];
+    state.theme = selectedTheme;
+    document.documentElement.dataset.theme = selectedTheme;
+    document.documentElement.dataset.bsTheme = config.bootstrap;
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", config.color);
+    el.themeOptions?.querySelectorAll("[data-theme-option]").forEach((option) => {
+      const selected = option.dataset.themeOption === selectedTheme;
+      option.classList.toggle("is-selected", selected);
+      option.setAttribute("aria-checked", String(selected));
+      option.tabIndex = selected ? 0 : -1;
+    });
   }
 
   function readSettings() {
@@ -128,6 +152,7 @@
       const saved = JSON.parse(localStorage.getItem("bi-mobile-settings") || "{}");
       state.autoRefresh = saved.autoRefresh !== false;
       state.compactCards = saved.compactCards === true;
+      state.theme = Object.hasOwn(THEME_CONFIG, saved.theme) ? saved.theme : "dark";
       if (STREAM_PROFILES.some((profile) => profile.id === saved.streamQuality)) {
         state.streamQuality = saved.streamQuality;
       }
@@ -148,6 +173,7 @@
       el.serverInput.value = window.location.origin === "null" ? "http://localhost:81" : window.location.origin;
     }
 
+    applyTheme(state.theme);
     el.autoRefreshToggle.checked = state.autoRefresh;
     el.compactCardsToggle.checked = state.compactCards;
     el.gridVolume.value = String(state.gridVolume);
@@ -163,6 +189,7 @@
       username: el.usernameInput.value.trim(),
       autoRefresh: state.autoRefresh,
       compactCards: state.compactCards,
+      theme: state.theme,
       streamQuality: state.streamQuality,
       gridVolume: state.gridVolume,
       liveVolume: state.liveVolume,
@@ -3031,6 +3058,24 @@
       el.appShell.classList.toggle("compact-cards", state.compactCards);
       saveSettings();
     });
+    el.themeOptions.addEventListener("click", (event) => {
+      const option = event.target.closest("[data-theme-option]");
+      if (!option || !el.themeOptions.contains(option)) return;
+      applyTheme(option.dataset.themeOption);
+      saveSettings();
+    });
+    el.themeOptions.addEventListener("keydown", (event) => {
+      if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
+      const options = [...el.themeOptions.querySelectorAll("[data-theme-option]")];
+      const currentIndex = options.indexOf(document.activeElement);
+      if (currentIndex < 0) return;
+      event.preventDefault();
+      const offset = event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1 : 1;
+      const option = options[(currentIndex + offset + options.length) % options.length];
+      applyTheme(option.dataset.themeOption);
+      saveSettings();
+      option.focus();
+    });
     el.streamQualitySelect.addEventListener("change", () => {
       state.streamQuality = el.streamQualitySelect.value;
       saveSettings();
@@ -3095,6 +3140,15 @@
       }
     });
     window.addEventListener("blur", () => stopPtzMovement({ hardStop: true, quiet: true }));
+    window.addEventListener("storage", (event) => {
+      if (event.key !== "bi-mobile-settings" || !event.newValue) return;
+      try {
+        const saved = JSON.parse(event.newValue);
+        if (Object.hasOwn(THEME_CONFIG, saved.theme)) applyTheme(saved.theme);
+      } catch {
+        // Ignore malformed settings written by another tab.
+      }
+    });
     document.addEventListener("fullscreenchange", syncMediaFullscreenState);
     document.addEventListener("webkitfullscreenchange", syncMediaFullscreenState);
     document.addEventListener("keydown", (event) => {

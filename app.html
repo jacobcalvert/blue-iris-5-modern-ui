@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-bs-theme="dark">
+<html lang="en" data-theme="dark" data-bs-theme="dark">
 <head>
   <!-- Source shell. Run `node scripts/build-login.mjs` to generate Blue Iris's self-contained login.htm entry. -->
   <meta charset="utf-8">
@@ -7,6 +7,28 @@
   <meta name="theme-color" content="#090d15">
   <meta name="description" content="A modern, responsive web client for Blue Iris 5.">
   <title>Blue Iris Mobile</title>
+  <script>
+    (() => {
+      const themes = {
+        light: { bootstrap: "light", color: "#f3f6fa" },
+        dark: { bootstrap: "dark", color: "#080c13" },
+        "solarized-light": { bootstrap: "light", color: "#fdf6e3" },
+        "solarized-dark": { bootstrap: "dark", color: "#002b36" },
+        cobalt: { bootstrap: "dark", color: "#15232d" },
+        "high-contrast": { bootstrap: "dark", color: "#000000" }
+      };
+      let theme = "dark";
+      try {
+        const saved = JSON.parse(localStorage.getItem("bi-mobile-settings") || "{}");
+        if (themes[saved.theme]) theme = saved.theme;
+      } catch {
+        // Keep the default theme if browser storage is unavailable or malformed.
+      }
+      document.documentElement.dataset.theme = theme;
+      document.documentElement.dataset.bsTheme = themes[theme].bootstrap;
+      document.querySelector('meta[name="theme-color"]').content = themes[theme].color;
+    })();
+  </script>
   <link rel="icon" href="assets/images/favicon.svg" type="image/svg+xml">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="assets/vendor/bootstrap.min.css">
@@ -164,7 +186,7 @@
           <span id="railServerDot" class="status-dot status-dot--online"></span>
           <div><strong id="railServerName">Blue Iris</strong><span id="railServerStatus">Connected</span></div>
         </div>
-        <button class="icon-button" data-bs-toggle="modal" data-bs-target="#settingsModal" aria-label="Connection settings">
+        <button class="icon-button" data-bs-toggle="modal" data-bs-target="#settingsModal" aria-label="Settings">
           <svg class="icon"><use href="#i-settings"/></svg>
         </button>
       </div>
@@ -199,7 +221,7 @@
               <span id="accountRole">Connected</span>
             </div>
             <button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#settingsModal">
-              <svg class="icon"><use href="#i-settings"/></svg> Connection settings
+              <svg class="icon"><use href="#i-settings"/></svg> Settings
             </button>
             <button class="dropdown-item text-danger" data-action="logout">
               <svg class="icon"><use href="#i-log-out"/></svg> Sign out
@@ -613,26 +635,69 @@
   </div>
 
   <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalTitle" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered settings-modal-dialog">
       <div class="modal-content settings-modal">
         <div class="modal-header">
-          <div><span class="eyebrow">Connection</span><h2 id="settingsModalTitle">Server settings</h2></div>
+          <div><span class="eyebrow">Preferences</span><h2 id="settingsModalTitle">App settings</h2></div>
           <button class="icon-button" data-bs-dismiss="modal" aria-label="Close"><svg class="icon"><use href="#i-x"/></svg></button>
         </div>
         <div class="modal-body">
-          <div class="settings-server-card">
-            <span id="settingsServerDot" class="status-dot status-dot--online"></span>
-            <div><strong id="settingsServerName">Blue Iris</strong><span id="settingsServerUrl"></span></div>
-          </div>
-          <p class="settings-copy">The server address can be changed by signing out and reconnecting. Passwords are never saved by this app.</p>
-          <label class="toggle-row">
-            <div><strong>Automatic refresh</strong><span>Refresh camera and status data every 15 seconds.</span></div>
-            <input id="autoRefreshToggle" class="form-check-input" type="checkbox" role="switch" checked>
-          </label>
-          <label class="toggle-row">
-            <div><strong>Compact camera cards</strong><span>Fit more feeds on wide screens.</span></div>
-            <input id="compactCardsToggle" class="form-check-input" type="checkbox" role="switch">
-          </label>
+          <section class="settings-section" aria-labelledby="appearanceSettingsTitle">
+            <div class="settings-section__heading">
+              <div><span class="eyebrow">Appearance</span><h3 id="appearanceSettingsTitle">Color theme</h3></div>
+              <span>Updates instantly</span>
+            </div>
+            <div id="themeOptions" class="theme-options" role="radiogroup" aria-label="Color theme">
+              <button class="theme-option" type="button" role="radio" aria-checked="true" data-theme-option="dark">
+                <span class="theme-option__preview" aria-hidden="true"><i></i><i></i><i></i></span>
+                <span><strong>Dark</strong><small>Blue Iris default</small></span>
+                <svg class="icon theme-option__check"><use href="#i-check"/></svg>
+              </button>
+              <button class="theme-option" type="button" role="radio" aria-checked="false" data-theme-option="light">
+                <span class="theme-option__preview" aria-hidden="true"><i></i><i></i><i></i></span>
+                <span><strong>Light</strong><small>Clean and bright</small></span>
+                <svg class="icon theme-option__check"><use href="#i-check"/></svg>
+              </button>
+              <button class="theme-option" type="button" role="radio" aria-checked="false" data-theme-option="solarized-light">
+                <span class="theme-option__preview" aria-hidden="true"><i></i><i></i><i></i></span>
+                <span><strong>Solarized light</strong><small>Warm and balanced</small></span>
+                <svg class="icon theme-option__check"><use href="#i-check"/></svg>
+              </button>
+              <button class="theme-option" type="button" role="radio" aria-checked="false" data-theme-option="solarized-dark">
+                <span class="theme-option__preview" aria-hidden="true"><i></i><i></i><i></i></span>
+                <span><strong>Solarized dark</strong><small>Low-contrast night</small></span>
+                <svg class="icon theme-option__check"><use href="#i-check"/></svg>
+              </button>
+              <button class="theme-option" type="button" role="radio" aria-checked="false" data-theme-option="cobalt">
+                <span class="theme-option__preview" aria-hidden="true"><i></i><i></i><i></i></span>
+                <span><strong>Cobalt</strong><small>Deep blue and gold</small></span>
+                <svg class="icon theme-option__check"><use href="#i-check"/></svg>
+              </button>
+              <button class="theme-option" type="button" role="radio" aria-checked="false" data-theme-option="high-contrast">
+                <span class="theme-option__preview" aria-hidden="true"><i></i><i></i><i></i></span>
+                <span><strong>High contrast</strong><small>Maximum separation</small></span>
+                <svg class="icon theme-option__check"><use href="#i-check"/></svg>
+              </button>
+            </div>
+          </section>
+          <section class="settings-section settings-section--connection" aria-labelledby="connectionSettingsTitle">
+            <div class="settings-section__heading">
+              <div><span class="eyebrow">Connection</span><h3 id="connectionSettingsTitle">Blue Iris server</h3></div>
+            </div>
+            <div class="settings-server-card">
+              <span id="settingsServerDot" class="status-dot status-dot--online"></span>
+              <div><strong id="settingsServerName">Blue Iris</strong><span id="settingsServerUrl"></span></div>
+            </div>
+            <p class="settings-copy">The server address can be changed by signing out and reconnecting. Passwords are never saved by this app.</p>
+            <label class="toggle-row">
+              <div><strong>Automatic refresh</strong><span>Refresh camera and status data every 15 seconds.</span></div>
+              <input id="autoRefreshToggle" class="form-check-input" type="checkbox" role="switch" checked>
+            </label>
+            <label class="toggle-row">
+              <div><strong>Compact camera cards</strong><span>Fit more feeds on wide screens.</span></div>
+              <input id="compactCardsToggle" class="form-check-input" type="checkbox" role="switch">
+            </label>
+          </section>
         </div>
         <div class="modal-footer">
           <button class="btn btn-ghost" data-bs-dismiss="modal">Close</button>
