@@ -4574,6 +4574,17 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
     if (!/^https?:$/.test(url.protocol)) {
       throw new BlueIrisError("Use an HTTP or HTTPS Blue Iris server address.", "invalid_url");
     }
+    // A same-host HTTP address is commonly left behind in local storage after
+    // Blue Iris is moved behind an HTTPS reverse proxy. Browsers cannot use it
+    // from this page, so keep the path but use the page's secure origin.
+    if (
+      window.location.protocol === "https:" &&
+      url.protocol === "http:" &&
+      url.hostname === window.location.hostname
+    ) {
+      url.protocol = "https:";
+      url.port = window.location.port;
+    }
     url.search = "";
     url.hash = "";
     url.pathname = url.pathname
@@ -5040,12 +5051,28 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
     }
 
     hlsRequestUrl(requestUrl) {
-      if (!this.session) return requestUrl;
       try {
+        const baseUrl = new URL(this.baseUrl);
         const url = new URL(requestUrl, `${this.baseUrl}/`);
-        if (/^https?:$/.test(url.protocol) && url.origin === new URL(this.baseUrl).origin) {
+        const isHlsMedia = /\/h264\/.*\.(?:m3u8|ts)$/i.test(url.pathname);
+
+        // Blue Iris may write absolute HTTP URLs into an HLS playlist because
+        // the reverse proxy talks HTTP to the server. ProxyPassReverse cannot
+        // rewrite those playlist-body URLs. Route only Blue Iris HLS media
+        // back through the configured HTTPS origin before the browser has a
+        // chance to reject the request as mixed content.
+        if (isHlsMedia && baseUrl.protocol === "https:" && url.protocol === "http:") {
+          url.protocol = baseUrl.protocol;
+          url.host = baseUrl.host;
+        }
+
+        if (
+          this.session &&
+          /^https?:$/.test(url.protocol) &&
+          url.origin === baseUrl.origin
+        ) {
           url.searchParams.set("session", this.session);
-          if (/\.m3u8?$/i.test(url.pathname)) url.searchParams.set("cache", "1");
+          if (/\.m3u8$/i.test(url.pathname)) url.searchParams.set("cache", "1");
         }
         return url.href;
       } catch {
@@ -7068,7 +7095,7 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
       } else if (status === 404) {
         message = "The HLS playlist was not found. Confirm HLS streaming is enabled for this camera.";
       } else if (status === 0 || /network|manifest|cors|load/.test(description)) {
-        message = state.client.isSameOrigin
+        message = state.client.isSameOrigin()
           ? "The HLS playlist could not be loaded. Confirm this camera supports H.264 streaming."
           : "The browser could not read the remote HLS playlist. Blue Iris must allow CORS from this site, and both sites must use compatible HTTP/HTTPS schemes.";
       }

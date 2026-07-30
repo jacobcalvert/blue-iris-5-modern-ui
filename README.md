@@ -60,6 +60,7 @@ A static browser app cannot bypass browser security:
 
 - Blue Iris must allow requests from the origin hosting this app.
 - An HTTPS-hosted app cannot access an HTTP-only Blue Iris server due to mixed-content blocking.
+- When the app and Blue Iris share a hostname, saved HTTP addresses are automatically upgraded to the page's HTTPS origin. Absolute `/h264/` URLs emitted inside Blue Iris HLS playlists are also routed back through the configured Blue Iris origin, preventing internal proxy hostnames from creating mixed-content or CORS failures.
 - Serving the app from Blue Iris itself, or placing both behind the same HTTPS reverse proxy, avoids these issues.
 - A reverse proxy must forward the complete Blue Iris media prefixes, especially `/h264/`. HLS playlists reference short-lived numbered `.ts` files under that same path, and `.m3u8` responses must not be cached.
 - Audio requires the low-latency `/video/` and `/file/clips/` routes to pass through unchanged. Browser autoplay rules require an explicit click before the all-camera audio mix can begin.

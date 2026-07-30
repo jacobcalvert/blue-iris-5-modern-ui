@@ -24,6 +24,17 @@
     if (!/^https?:$/.test(url.protocol)) {
       throw new BlueIrisError("Use an HTTP or HTTPS Blue Iris server address.", "invalid_url");
     }
+    // A same-host HTTP address is commonly left behind in local storage after
+    // Blue Iris is moved behind an HTTPS reverse proxy. Browsers cannot use it
+    // from this page, so keep the path but use the page's secure origin.
+    if (
+      window.location.protocol === "https:" &&
+      url.protocol === "http:" &&
+      url.hostname === window.location.hostname
+    ) {
+      url.protocol = "https:";
+      url.port = window.location.port;
+    }
     url.search = "";
     url.hash = "";
     url.pathname = url.pathname
@@ -490,12 +501,27 @@
     }
 
     hlsRequestUrl(requestUrl) {
-      if (!this.session) return requestUrl;
       try {
+        const baseUrl = new URL(this.baseUrl);
         const url = new URL(requestUrl, `${this.baseUrl}/`);
-        if (/^https?:$/.test(url.protocol) && url.origin === new URL(this.baseUrl).origin) {
+        const isHlsMedia = /\/h264\/.*\.(?:m3u8|ts)$/i.test(url.pathname);
+
+        // Blue Iris may write its direct HTTP(S) origin into an HLS playlist.
+        // ProxyPassReverse cannot rewrite URLs in a playlist response body.
+        // Route only Blue Iris HLS media back through the configured origin so
+        // internal hostnames do not cause mixed-content or CORS failures.
+        if (isHlsMedia && url.origin !== baseUrl.origin) {
+          url.protocol = baseUrl.protocol;
+          url.host = baseUrl.host;
+        }
+
+        if (
+          this.session &&
+          /^https?:$/.test(url.protocol) &&
+          url.origin === baseUrl.origin
+        ) {
           url.searchParams.set("session", this.session);
-          if (/\.m3u8?$/i.test(url.pathname)) url.searchParams.set("cache", "1");
+          if (/\.m3u8$/i.test(url.pathname)) url.searchParams.set("cache", "1");
         }
         return url.href;
       } catch {

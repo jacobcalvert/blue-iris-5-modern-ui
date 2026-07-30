@@ -1695,7 +1695,7 @@
       } else if (status === 404) {
         message = "The HLS playlist was not found. Confirm HLS streaming is enabled for this camera.";
       } else if (status === 0 || /network|manifest|cors|load/.test(description)) {
-        message = state.client.isSameOrigin
+        message = state.client.isSameOrigin()
           ? "The HLS playlist could not be loaded. Confirm this camera supports H.264 streaming."
           : "The browser could not read the remote HLS playlist. Blue Iris must allow CORS from this site, and both sites must use compatible HTTP/HTTPS schemes.";
       }
@@ -1730,7 +1730,7 @@
                 ? state.client.hlsRequestUrl(url)
                 : url;
               xhr.open("GET", authenticatedUrl, true);
-              xhr.withCredentials = Boolean(state.client?.isSameOrigin);
+              xhr.withCredentials = state.client?.isSameOrigin(authenticatedUrl) === true;
             }
           }
         },
