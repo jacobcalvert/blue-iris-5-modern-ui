@@ -66,11 +66,15 @@ A static browser app cannot bypass browser security:
 
 ## PTZ, presets, and talkback
 
-Directional and zoom controls send Blue Iris's paired movement commands: pressing starts
-movement with `updown: 1`, and releasing repeats the command with `updown: 0` to stop it.
+The eight-way directional and zoom controls send Blue Iris's paired movement commands:
+pressing starts movement with `updown: 1`, and releasing repeats the command with
+`updown: 0` to stop it. Diagonal movement uses commands `59-62`.
 The center control sends the independent stop command (`64`), while Home remains available
 as command `4`. The app also sends a safety stop when the camera dialog closes, the page
 loses focus, or a movement remains active for ten seconds.
+
+The camera control panel also reads the current IR mode from PTZ metadata and can explicitly
+set supported camera IR LEDs to Off (`34`), On (`35`), or Auto (`36`).
 
 Preset names and counts come from the camera's `ptz` metadata. Any user with PTZ permission
 can call a preset. Blue Iris administrator access is required to assign the camera's current

@@ -23,6 +23,9 @@
   const EXPORT_POLL_INTERVAL_MS = 1800;
   const PTZ_STOP_COMMAND = 64;
   const PTZ_HOME_COMMAND = 4;
+  const PTZ_IR_OFF_COMMAND = 34;
+  const PTZ_IR_ON_COMMAND = 35;
+  const PTZ_IR_AUTO_COMMAND = 36;
   const PTZ_PRESET_BASE = 100;
   const PTZ_MAX_PRESETS = 20;
   const PTZ_SAFETY_STOP_MS = 10000;
@@ -77,7 +80,8 @@
     ptzActiveMovement: null,
     ptzRequestChain: Promise.resolve(),
     ptzSafetyTimer: null,
-    ptzLoading: false
+    ptzLoading: false,
+    irUpdating: false
   };
 
   const el = {};
@@ -100,7 +104,7 @@
       "talkbackButton",
       "viewerTimestamp", "viewerResolution", "streamError", "streamErrorTitle",
       "streamErrorMessage", "streamQualitySelect", "manualRecordButton", "triggerButton",
-      "ptzPanel", "presetControl", "presetStatus", "presetEditor", "presetNumber",
+      "ptzPanel", "irModeControl", "irStatus", "presetControl", "presetStatus", "presetEditor", "presetNumber",
       "presetDescription", "presetEditorLabel", "presetSaveButton", "snapshotDownload",
       "recordingModal", "recordingModalTitle",
       "recordingTypeLabel", "recordingStream", "recordingTimestamp", "recordingResolution",
@@ -1598,7 +1602,7 @@
 
     const canPtz = canControlPtz(camera);
     el.ptzPanel
-      .querySelectorAll("[data-ptz-move], [data-action='ptz-stop'], [data-action='ptz-home']")
+      .querySelectorAll("[data-ptz-move], [data-action='ptz-stop'], [data-action='ptz-home'], [data-ir-mode]")
       .forEach((button) => { button.disabled = !canPtz; });
     closePresetEditor();
     state.ptzMetadata = normalizePtzMetadata({});
@@ -1896,8 +1900,59 @@
       ...source,
       presetnum: count,
       presetMap: presets,
+      irmode: Number.isFinite(Number(source.irmode)) ? Number(source.irmode) : null,
       talksamplerate: Math.max(0, Number(source.talksamplerate) || 0)
     };
+  }
+
+  function updateIrControl() {
+    if (!el.irModeControl) return;
+    const mode = state.ptzMetadata?.irmode;
+    const canToggle = canControlPtz() && !state.ptzLoading && !state.irUpdating;
+    const label = mode === 1 ? "On" : mode === 2 ? "Auto" : mode === 0 ? "Off" : "Unknown";
+
+    el.irModeControl.querySelectorAll("[data-ir-mode]").forEach((button) => {
+      const selected = Number(button.dataset.irMode) === mode;
+      button.disabled = !canToggle;
+      button.classList.toggle("active", selected);
+      button.setAttribute("aria-pressed", String(selected));
+    });
+    el.irModeControl.title = state.ptzLoading
+      ? "Checking the camera's IR LED mode."
+      : `IR LEDs are ${label.toLowerCase()}.`;
+    el.irStatus.textContent = state.ptzLoading ? "Checking..." : label;
+  }
+
+  async function setIrMode(requestedMode) {
+    const nextMode = Number(requestedMode);
+    if (
+      !canControlPtz() ||
+      state.ptzLoading ||
+      state.irUpdating ||
+      ![0, 1, 2].includes(nextMode) ||
+      state.ptzMetadata?.irmode === nextMode
+    ) return;
+    const cameraName = state.activeCamera.optionDisplay;
+    const previousMode = state.ptzMetadata?.irmode;
+    const command = {
+      0: PTZ_IR_OFF_COMMAND,
+      1: PTZ_IR_ON_COMMAND,
+      2: PTZ_IR_AUTO_COMMAND
+    }[nextMode];
+    const label = nextMode === 1 ? "on" : nextMode === 2 ? "automatic" : "off";
+
+    state.irUpdating = true;
+    if (state.ptzMetadata) state.ptzMetadata.irmode = nextMode;
+    updateIrControl();
+    try {
+      await sendPtzAction(command);
+      showToast("IR LEDs updated", `${cameraName} IR LEDs are now ${label}.`);
+    } catch {
+      if (state.ptzMetadata) state.ptzMetadata.irmode = previousMode;
+    } finally {
+      state.irUpdating = false;
+      updateIrControl();
+    }
   }
 
   function updateTalkbackSupport() {
@@ -1974,6 +2029,7 @@
         </div>
       `;
     }).join("");
+    updateIrControl();
     updateTalkbackSupport();
   }
 
@@ -2469,6 +2525,12 @@
         const index = state.alerts.findIndex((item) => alertExportKey(item) === activeKey);
         if (index >= 0) exportAlert(index);
       }
+      return;
+    }
+
+    const irMode = event.target.closest("[data-ir-mode]");
+    if (irMode && !irMode.disabled) {
+      setIrMode(irMode.dataset.irMode);
       return;
     }
 

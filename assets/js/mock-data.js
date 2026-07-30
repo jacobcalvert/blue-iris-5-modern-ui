@@ -240,6 +240,7 @@
       this.exportJobs = new Map();
       this.alertFlagOverrides = new Map();
       this.ptzCommands = [];
+      this.irMode = 0;
       this.ptzPresets = new Map([
         [1, "Front gate"],
         [2, "Driveway"],
@@ -324,6 +325,7 @@
           return {
             presetnum: 12,
             presets: Array.from(this.ptzPresets, ([num, description]) => ({ num, description })),
+            irmode: this.irMode,
             talksamplerate: 8000
           };
         }
@@ -342,6 +344,9 @@
         ) {
           this.ptzPresets.set(presetNumber, payload.description);
         }
+        if (Number(payload.button) === 34) this.irMode = 0;
+        if (Number(payload.button) === 35) this.irMode = 1;
+        if (Number(payload.button) === 36) this.irMode = 2;
         return { ok: true };
       }
       if (command === "trigger") {

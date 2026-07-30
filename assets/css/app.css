@@ -2082,11 +2082,9 @@ button {
   background: rgba(var(--bi-primary-rgb), 0.08);
 }
 
-.ptz-pad button:first-child { grid-column: 2; }
-.ptz-pad button:nth-child(2) { grid-column: 1; grid-row: 2; }
-.ptz-pad button:nth-child(3) { grid-column: 2; grid-row: 2; border-radius: 50%; }
-.ptz-pad button:nth-child(4) { grid-column: 3; grid-row: 2; }
-.ptz-pad button:nth-child(5) { grid-column: 2; grid-row: 3; }
+.ptz-pad button:nth-child(5) {
+  border-radius: 50%;
+}
 
 .ptz-pad button {
   border-radius: 12px;
@@ -2140,6 +2138,78 @@ button {
 .zoom-control .icon {
   width: 15px;
   height: 15px;
+}
+
+.camera-aux-controls {
+  display: grid;
+  gap: 7px;
+}
+
+.aux-control-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: #66768a;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.aux-control-heading > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.aux-control-heading .icon {
+  width: 14px;
+  height: 14px;
+}
+
+.aux-control-heading strong {
+  color: #7f91a6;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.ir-mode-control {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 3px;
+  gap: 3px;
+  border: 1px solid var(--bi-border);
+  border-radius: 10px;
+  background: #080e16;
+}
+
+.ir-mode-control button {
+  min-height: 34px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: #7f91a6;
+  background: transparent;
+  font-size: 0.62rem;
+  font-weight: 680;
+}
+
+.ir-mode-control button:hover:not(:disabled) {
+  color: #d8f3f1;
+  background: rgba(var(--bi-primary-rgb), 0.07);
+}
+
+.ir-mode-control button.active {
+  border-color: rgba(255, 197, 85, 0.28);
+  color: #ffe5a9;
+  background: rgba(255, 176, 42, 0.12);
+  box-shadow: inset 0 0 12px rgba(255, 176, 42, 0.04);
+}
+
+.ir-mode-control button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .preset-section {
@@ -2758,6 +2828,10 @@ button {
     grid-column: 2;
   }
 
+  .camera-aux-controls {
+    grid-column: 2;
+  }
+
   .recording-body {
     grid-template-columns: 1fr;
     overflow-y: auto;
@@ -3085,6 +3159,10 @@ button {
   }
 
   .preset-section {
+    grid-column: auto;
+  }
+
+  .camera-aux-controls {
     grid-column: auto;
   }
 

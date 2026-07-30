@@ -2101,11 +2101,9 @@ button {
   background: rgba(var(--bi-primary-rgb), 0.08);
 }
 
-.ptz-pad button:first-child { grid-column: 2; }
-.ptz-pad button:nth-child(2) { grid-column: 1; grid-row: 2; }
-.ptz-pad button:nth-child(3) { grid-column: 2; grid-row: 2; border-radius: 50%; }
-.ptz-pad button:nth-child(4) { grid-column: 3; grid-row: 2; }
-.ptz-pad button:nth-child(5) { grid-column: 2; grid-row: 3; }
+.ptz-pad button:nth-child(5) {
+  border-radius: 50%;
+}
 
 .ptz-pad button {
   border-radius: 12px;
@@ -2159,6 +2157,78 @@ button {
 .zoom-control .icon {
   width: 15px;
   height: 15px;
+}
+
+.camera-aux-controls {
+  display: grid;
+  gap: 7px;
+}
+
+.aux-control-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: #66768a;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.aux-control-heading > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.aux-control-heading .icon {
+  width: 14px;
+  height: 14px;
+}
+
+.aux-control-heading strong {
+  color: #7f91a6;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.ir-mode-control {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 3px;
+  gap: 3px;
+  border: 1px solid var(--bi-border);
+  border-radius: 10px;
+  background: #080e16;
+}
+
+.ir-mode-control button {
+  min-height: 34px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: #7f91a6;
+  background: transparent;
+  font-size: 0.62rem;
+  font-weight: 680;
+}
+
+.ir-mode-control button:hover:not(:disabled) {
+  color: #d8f3f1;
+  background: rgba(var(--bi-primary-rgb), 0.07);
+}
+
+.ir-mode-control button.active {
+  border-color: rgba(255, 197, 85, 0.28);
+  color: #ffe5a9;
+  background: rgba(255, 176, 42, 0.12);
+  box-shadow: inset 0 0 12px rgba(255, 176, 42, 0.04);
+}
+
+.ir-mode-control button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .preset-section {
@@ -2777,6 +2847,10 @@ button {
     grid-column: 2;
   }
 
+  .camera-aux-controls {
+    grid-column: 2;
+  }
+
   .recording-body {
     grid-template-columns: 1fr;
     overflow-y: auto;
@@ -3107,6 +3181,10 @@ button {
     grid-column: auto;
   }
 
+  .camera-aux-controls {
+    grid-column: auto;
+  }
+
   .recording-info .details-list {
     grid-template-columns: 1fr 1fr;
   }
@@ -3158,12 +3236,17 @@ button {
     <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
     <symbol id="i-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
     <symbol id="i-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+    <symbol id="i-up-left" viewBox="0 0 24 24"><path d="M17 17 7 7M7 7h8M7 7v8"/></symbol>
+    <symbol id="i-up-right" viewBox="0 0 24 24"><path d="M7 17 17 7M17 7H9M17 7v8"/></symbol>
+    <symbol id="i-down-left" viewBox="0 0 24 24"><path d="M17 7 7 17M7 17h8M7 17V9"/></symbol>
+    <symbol id="i-down-right" viewBox="0 0 24 24"><path d="m7 7 10 10M17 17H9M17 17V9"/></symbol>
     <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
     <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
     <symbol id="i-home" viewBox="0 0 24 24"><path d="m3 11 9-8 9 8"/><path d="M5 10v11h14V10M9 21v-7h6v7"/></symbol>
     <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>
     <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"/></symbol>
     <symbol id="i-edit" viewBox="0 0 24 24"><path d="m4 20 4.5-1 10-10a2.1 2.1 0 0 0-3-3l-10 10L4 20Z"/><path d="m13.5 7.5 3 3"/></symbol>
+    <symbol id="i-ir" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/></symbol>
     <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
     <symbol id="i-server" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="6" rx="2"/><rect x="3" y="14" width="18" height="6" rx="2"/><path d="M7 7h.01M7 17h.01"/></symbol>
     <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
@@ -3579,16 +3662,31 @@ button {
             </div>
             <div class="ptz-layout">
               <div class="ptz-pad">
+                <button data-ptz-move="59" aria-label="Pan up and left" title="Press and hold to move up and left"><svg class="icon"><use href="#i-up-left"/></svg></button>
                 <button data-ptz-move="2" aria-label="Tilt up" title="Press and hold to tilt up"><svg class="icon"><use href="#i-up"/></svg></button>
+                <button data-ptz-move="60" aria-label="Pan up and right" title="Press and hold to move up and right"><svg class="icon"><use href="#i-up-right"/></svg></button>
                 <button data-ptz-move="0" aria-label="Pan left" title="Press and hold to pan left"><svg class="icon"><use href="#i-left"/></svg></button>
                 <button class="ptz-stop-button" data-action="ptz-stop" aria-label="Stop camera movement" title="Stop camera movement"><svg class="icon"><use href="#i-stop"/></svg></button>
                 <button data-ptz-move="1" aria-label="Pan right" title="Press and hold to pan right"><svg class="icon"><use href="#i-right"/></svg></button>
+                <button data-ptz-move="61" aria-label="Pan down and left" title="Press and hold to move down and left"><svg class="icon"><use href="#i-down-left"/></svg></button>
                 <button data-ptz-move="3" aria-label="Tilt down" title="Press and hold to tilt down"><svg class="icon"><use href="#i-down"/></svg></button>
+                <button data-ptz-move="62" aria-label="Pan down and right" title="Press and hold to move down and right"><svg class="icon"><use href="#i-down-right"/></svg></button>
               </div>
               <div class="zoom-control">
                 <button data-ptz-move="5" title="Press and hold to zoom in"><svg class="icon"><use href="#i-plus"/></svg><span>Zoom in</span></button>
                 <button data-ptz-move="6" title="Press and hold to zoom out"><svg class="icon"><use href="#i-minus"/></svg><span>Zoom out</span></button>
                 <button data-action="ptz-home" title="Move to the camera home position"><svg class="icon"><use href="#i-home"/></svg><span>Home</span></button>
+              </div>
+              <div class="camera-aux-controls">
+                <div class="aux-control-heading">
+                  <span><svg class="icon"><use href="#i-ir"/></svg>IR LEDs</span>
+                  <strong id="irStatus">Checking...</strong>
+                </div>
+                <div id="irModeControl" class="ir-mode-control" role="group" aria-label="IR LED mode">
+                  <button type="button" data-ir-mode="0" aria-pressed="false" disabled>Off</button>
+                  <button type="button" data-ir-mode="1" aria-pressed="false" disabled>On</button>
+                  <button type="button" data-ir-mode="2" aria-pressed="false" disabled>Auto</button>
+                </div>
               </div>
               <section class="preset-section" aria-labelledby="presetHeading">
                 <div class="preset-heading">
@@ -4197,6 +4295,7 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
       this.exportJobs = new Map();
       this.alertFlagOverrides = new Map();
       this.ptzCommands = [];
+      this.irMode = 0;
       this.ptzPresets = new Map([
         [1, "Front gate"],
         [2, "Driveway"],
@@ -4281,6 +4380,7 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
           return {
             presetnum: 12,
             presets: Array.from(this.ptzPresets, ([num, description]) => ({ num, description })),
+            irmode: this.irMode,
             talksamplerate: 8000
           };
         }
@@ -4299,6 +4399,9 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
         ) {
           this.ptzPresets.set(presetNumber, payload.description);
         }
+        if (Number(payload.button) === 34) this.irMode = 0;
+        if (Number(payload.button) === 35) this.irMode = 1;
+        if (Number(payload.button) === 36) this.irMode = 2;
         return { ok: true };
       }
       if (command === "trigger") {
@@ -5293,6 +5396,9 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
   const EXPORT_POLL_INTERVAL_MS = 1800;
   const PTZ_STOP_COMMAND = 64;
   const PTZ_HOME_COMMAND = 4;
+  const PTZ_IR_OFF_COMMAND = 34;
+  const PTZ_IR_ON_COMMAND = 35;
+  const PTZ_IR_AUTO_COMMAND = 36;
   const PTZ_PRESET_BASE = 100;
   const PTZ_MAX_PRESETS = 20;
   const PTZ_SAFETY_STOP_MS = 10000;
@@ -5347,7 +5453,8 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
     ptzActiveMovement: null,
     ptzRequestChain: Promise.resolve(),
     ptzSafetyTimer: null,
-    ptzLoading: false
+    ptzLoading: false,
+    irUpdating: false
   };
 
   const el = {};
@@ -5370,7 +5477,7 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
       "talkbackButton",
       "viewerTimestamp", "viewerResolution", "streamError", "streamErrorTitle",
       "streamErrorMessage", "streamQualitySelect", "manualRecordButton", "triggerButton",
-      "ptzPanel", "presetControl", "presetStatus", "presetEditor", "presetNumber",
+      "ptzPanel", "irModeControl", "irStatus", "presetControl", "presetStatus", "presetEditor", "presetNumber",
       "presetDescription", "presetEditorLabel", "presetSaveButton", "snapshotDownload",
       "recordingModal", "recordingModalTitle",
       "recordingTypeLabel", "recordingStream", "recordingTimestamp", "recordingResolution",
@@ -6868,7 +6975,7 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
 
     const canPtz = canControlPtz(camera);
     el.ptzPanel
-      .querySelectorAll("[data-ptz-move], [data-action='ptz-stop'], [data-action='ptz-home']")
+      .querySelectorAll("[data-ptz-move], [data-action='ptz-stop'], [data-action='ptz-home'], [data-ir-mode]")
       .forEach((button) => { button.disabled = !canPtz; });
     closePresetEditor();
     state.ptzMetadata = normalizePtzMetadata({});
@@ -7166,8 +7273,59 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
       ...source,
       presetnum: count,
       presetMap: presets,
+      irmode: Number.isFinite(Number(source.irmode)) ? Number(source.irmode) : null,
       talksamplerate: Math.max(0, Number(source.talksamplerate) || 0)
     };
+  }
+
+  function updateIrControl() {
+    if (!el.irModeControl) return;
+    const mode = state.ptzMetadata?.irmode;
+    const canToggle = canControlPtz() && !state.ptzLoading && !state.irUpdating;
+    const label = mode === 1 ? "On" : mode === 2 ? "Auto" : mode === 0 ? "Off" : "Unknown";
+
+    el.irModeControl.querySelectorAll("[data-ir-mode]").forEach((button) => {
+      const selected = Number(button.dataset.irMode) === mode;
+      button.disabled = !canToggle;
+      button.classList.toggle("active", selected);
+      button.setAttribute("aria-pressed", String(selected));
+    });
+    el.irModeControl.title = state.ptzLoading
+      ? "Checking the camera's IR LED mode."
+      : `IR LEDs are ${label.toLowerCase()}.`;
+    el.irStatus.textContent = state.ptzLoading ? "Checking..." : label;
+  }
+
+  async function setIrMode(requestedMode) {
+    const nextMode = Number(requestedMode);
+    if (
+      !canControlPtz() ||
+      state.ptzLoading ||
+      state.irUpdating ||
+      ![0, 1, 2].includes(nextMode) ||
+      state.ptzMetadata?.irmode === nextMode
+    ) return;
+    const cameraName = state.activeCamera.optionDisplay;
+    const previousMode = state.ptzMetadata?.irmode;
+    const command = {
+      0: PTZ_IR_OFF_COMMAND,
+      1: PTZ_IR_ON_COMMAND,
+      2: PTZ_IR_AUTO_COMMAND
+    }[nextMode];
+    const label = nextMode === 1 ? "on" : nextMode === 2 ? "automatic" : "off";
+
+    state.irUpdating = true;
+    if (state.ptzMetadata) state.ptzMetadata.irmode = nextMode;
+    updateIrControl();
+    try {
+      await sendPtzAction(command);
+      showToast("IR LEDs updated", `${cameraName} IR LEDs are now ${label}.`);
+    } catch {
+      if (state.ptzMetadata) state.ptzMetadata.irmode = previousMode;
+    } finally {
+      state.irUpdating = false;
+      updateIrControl();
+    }
   }
 
   function updateTalkbackSupport() {
@@ -7244,6 +7402,7 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
         </div>
       `;
     }).join("");
+    updateIrControl();
     updateTalkbackSupport();
   }
 
@@ -7739,6 +7898,12 @@ var Clappr=function(){"use strict";function e(e,t,n){return t in e?Object.define
         const index = state.alerts.findIndex((item) => alertExportKey(item) === activeKey);
         if (index >= 0) exportAlert(index);
       }
+      return;
+    }
+
+    const irMode = event.target.closest("[data-ir-mode]");
+    if (irMode && !irMode.disabled) {
+      setIrMode(irMode.dataset.irMode);
       return;
     }
 
