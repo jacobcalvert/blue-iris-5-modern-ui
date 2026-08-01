@@ -1827,6 +1827,28 @@ button {
   font-size: 0.62rem;
 }
 
+.metric-card--warning {
+  border-color: rgba(247, 190, 79, 0.3);
+}
+
+.metric-card--warning .metric-card__top .icon,
+.metric-card--warning strong {
+  color: var(--bi-warning);
+}
+
+.metric-card--danger {
+  border-color: rgba(255, 95, 109, 0.32);
+}
+
+.metric-card--danger .metric-card__top .icon,
+.metric-card--danger strong {
+  color: var(--bi-danger);
+}
+
+.metric-card--danger .metric-card__bar span {
+  background: var(--bi-danger);
+}
+
 .system-grid {
   display: grid;
   grid-template-columns: 1.15fr 0.85fr;
@@ -1842,6 +1864,11 @@ button {
 
 .system-details-panel {
   grid-column: 1 / -1;
+}
+
+.system-wide-panel {
+  grid-column: 1 / -1;
+  min-width: 0;
 }
 
 .panel-heading {
@@ -1934,6 +1961,48 @@ button {
   gap: 19px;
 }
 
+.storage-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -4px 0 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--bi-border);
+}
+
+.storage-summary[hidden] {
+  display: none;
+}
+
+.storage-summary > span {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 150px;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 1px solid var(--bi-border);
+  border-radius: 10px;
+  background: var(--bi-panel-bg-soft);
+}
+
+.storage-summary small {
+  color: var(--bi-text-subtle);
+  font-size: 0.58rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.storage-summary strong {
+  overflow: hidden;
+  color: var(--bi-text-soft);
+  font-size: 0.7rem;
+  font-weight: 620;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .storage-item__header {
   display: flex;
   align-items: flex-end;
@@ -1982,6 +2051,191 @@ button {
   font-size: 0.75rem;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.soft-pill--warning {
+  border-color: rgba(247, 190, 79, 0.3);
+  color: var(--bi-warning);
+}
+
+.camera-health-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--bi-border);
+  border-radius: 12px;
+}
+
+.camera-health-table {
+  width: 100%;
+  min-width: 880px;
+  border-collapse: collapse;
+  color: var(--bi-text-soft);
+  font-size: 0.68rem;
+  table-layout: fixed;
+}
+
+.camera-health-table th:nth-child(1) { width: 11%; }
+.camera-health-table th:nth-child(2) { width: 10%; }
+.camera-health-table th:nth-child(3) { width: 14%; }
+.camera-health-table th:nth-child(4) { width: 13%; }
+.camera-health-table th:nth-child(5) { width: 18%; }
+.camera-health-table th:nth-child(6) { width: 14%; }
+.camera-health-table th:nth-child(7) { width: 11%; }
+.camera-health-table th:nth-child(8) { width: 9%; }
+
+.camera-health-table th {
+  padding: 11px 12px;
+  color: var(--bi-text-subtle);
+  background: var(--bi-panel-bg-soft);
+  font-size: 0.57rem;
+  font-weight: 680;
+  letter-spacing: 0.08em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.camera-health-table td {
+  max-width: 210px;
+  padding: 13px 9px;
+  border-top: 1px solid var(--bi-border);
+  vertical-align: top;
+}
+
+.camera-health-table td > strong,
+.camera-health-table td > small,
+.camera-health-table td > .health-counter {
+  display: block;
+}
+
+.camera-health-table td > small,
+.camera-health-table td > strong + small {
+  overflow: hidden;
+  margin-top: 3px;
+  color: var(--bi-text-subtle);
+  font-size: 0.59rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.health-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 680;
+  white-space: nowrap;
+}
+
+.health-state > span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--bi-text-subtle);
+}
+
+.health-state--success > span { background: var(--bi-success); }
+.health-state--warning { color: var(--bi-warning); }
+.health-state--warning > span { background: var(--bi-warning); }
+.health-state--danger { color: var(--bi-danger); }
+.health-state--danger > span { background: var(--bi-danger); }
+
+.health-activity {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.health-activity > span {
+  padding: 3px 6px;
+  border: 1px solid rgba(var(--bi-primary-rgb), 0.18);
+  border-radius: 7px;
+  color: var(--bi-primary);
+  background: rgba(var(--bi-primary-rgb), 0.07);
+  font-size: 0.55rem;
+  font-weight: 650;
+}
+
+.health-counter {
+  color: var(--bi-text-subtle);
+  font-size: 0.58rem;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.health-counter strong {
+  color: var(--bi-text-soft);
+}
+
+.system-log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.system-log-entry {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 11px;
+  padding: 12px 13px;
+  border: 1px solid var(--bi-border);
+  border-radius: 11px;
+  background: var(--bi-panel-bg-soft);
+}
+
+.system-log-entry__marker {
+  width: 8px;
+  height: 8px;
+  margin-top: 4px;
+  border-radius: 50%;
+  background: var(--bi-warning);
+}
+
+.system-log-entry--error .system-log-entry__marker {
+  background: var(--bi-danger);
+  box-shadow: 0 0 0 4px rgba(255, 95, 109, 0.1);
+}
+
+.system-log-entry__body > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  align-items: center;
+}
+
+.system-log-entry__body strong {
+  color: var(--bi-text-soft);
+  font-size: 0.67rem;
+}
+
+.system-log-entry__body span,
+.system-log-entry time {
+  color: var(--bi-text-subtle);
+  font-size: 0.58rem;
+}
+
+.system-log-entry__body p {
+  margin: 4px 0 0;
+  color: var(--bi-text-soft);
+  font-size: 0.68rem;
+  line-height: 1.45;
+}
+
+.system-log-entry time {
+  white-space: nowrap;
+}
+
+.system-log-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 96px;
+  color: var(--bi-text-subtle);
+  font-size: 0.68rem;
+}
+
+.system-log-empty {
+  min-height: 125px;
 }
 
 .mobile-nav {
@@ -3581,6 +3835,63 @@ body.media-fullscreen-open {
   .system-details-panel {
     grid-column: auto;
   }
+
+  .system-wide-panel {
+    grid-column: auto;
+  }
+
+  .camera-health-table-wrap {
+    overflow: visible;
+    border: 0;
+  }
+
+  .camera-health-table,
+  .camera-health-table tbody {
+    display: block;
+    min-width: 0;
+  }
+
+  .camera-health-table thead {
+    display: none;
+  }
+
+  .camera-health-table tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0;
+    margin-bottom: 10px;
+    overflow: hidden;
+    border: 1px solid var(--bi-border);
+    border-radius: 12px;
+    background: var(--bi-panel-bg-soft);
+  }
+
+  .camera-health-table tr:last-child {
+    margin-bottom: 0;
+  }
+
+  .camera-health-table td {
+    display: block;
+    max-width: none;
+    min-width: 0;
+    padding: 11px 12px;
+    border-top: 1px solid var(--bi-border);
+  }
+
+  .camera-health-table td:nth-child(-n + 2) {
+    border-top: 0;
+  }
+
+  .camera-health-table td::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 5px;
+    color: var(--bi-text-subtle);
+    font-size: 0.52rem;
+    font-weight: 680;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
 }
 
 @media (max-width: 575.98px) {
@@ -3734,6 +4045,14 @@ body.media-fullscreen-open {
 
   .surface-panel {
     padding: 16px;
+  }
+
+  .system-log-entry {
+    grid-template-columns: 8px minmax(0, 1fr);
+  }
+
+  .system-log-entry time {
+    grid-column: 2;
   }
 
   .shield-control {
@@ -4482,7 +4801,22 @@ html[data-theme="high-contrast"] :where(
               <div><span class="eyebrow">Capacity</span><h3>Storage</h3></div>
               <svg class="icon icon-muted"><use href="#i-server"/></svg>
             </div>
+            <div id="storageSummary" class="storage-summary"></div>
             <div id="storageList" class="storage-list"></div>
+          </section>
+          <section class="surface-panel system-wide-panel">
+            <div class="panel-heading">
+              <div><span class="eyebrow">Cameras</span><h3>Stream & camera health</h3></div>
+              <span id="cameraHealthSummary" class="soft-pill">Checking cameras</span>
+            </div>
+            <div id="cameraHealth" class="camera-health"></div>
+          </section>
+          <section class="surface-panel system-wide-panel">
+            <div class="panel-heading">
+              <div><span class="eyebrow">Messages</span><h3>Recent warnings & errors</h3></div>
+              <span id="systemLogStatus" class="soft-pill">Open System to load</span>
+            </div>
+            <div id="systemLogList" class="system-log-list" aria-live="polite"></div>
           </section>
           <section class="surface-panel system-details-panel">
             <div class="panel-heading">
@@ -4974,8 +5308,14 @@ var Clappr=function(){"use strict";function t(t,e,i){return(e=function(t){var e=
       optionDisplay: "Front Door",
       optionValue: "frontdoor",
       FPS: 15,
+      fps: 15,
+      fps2: 10,
+      bps: 690000,
+      bps2: 92000,
       width: 2560,
       height: 1440,
+      width2: 640,
+      height2: 360,
       isOnline: true,
       isEnabled: true,
       isMotion: true,
@@ -4986,6 +5326,11 @@ var Clappr=function(){"use strict";function t(t,e,i){return(e=function(t){var e=
       ptz: false,
       audio: true,
       newalerts: 4,
+      clipsCreated: 128,
+      nTriggers: 46,
+      nAlerts: 19,
+      nNoSignal: 0,
+      lastalertutc: Date.now() - 4 * 60000,
       profile: 1,
       color: 5488154
     },
@@ -4993,8 +5338,14 @@ var Clappr=function(){"use strict";function t(t,e,i){return(e=function(t){var e=
       optionDisplay: "Driveway",
       optionValue: "driveway",
       FPS: 20,
+      fps: 20,
+      fps2: 12,
+      bps: 1080000,
+      bps2: 124000,
       width: 3840,
       height: 2160,
+      width2: 720,
+      height2: 404,
       isOnline: true,
       isEnabled: true,
       isMotion: false,
@@ -5005,6 +5356,11 @@ var Clappr=function(){"use strict";function t(t,e,i){return(e=function(t){var e=
       ptz: true,
       audio: true,
       newalerts: 2,
+      clipsCreated: 93,
+      nTriggers: 31,
+      nAlerts: 12,
+      nNoSignal: 1,
+      lastalertutc: Date.now() - 22 * 60000,
       profile: 1,
       color: 16745808
     },
@@ -5012,8 +5368,14 @@ var Clappr=function(){"use strict";function t(t,e,i){return(e=function(t){var e=
       optionDisplay: "Backyard",
       optionValue: "backyard",
       FPS: 15,
+      fps: 15,
+      fps2: 10,
+      bps: 580000,
+      bps2: 78000,
       width: 1920,
       height: 1080,
+      width2: 640,
+      height2: 360,
       isOnline: true,
       isEnabled: true,
       isMotion: false,
@@ -5024,6 +5386,11 @@ var Clappr=function(){"use strict";function t(t,e,i){return(e=function(t){var e=
       ptz: true,
       audio: true,
       newalerts: 1,
+      clipsCreated: 67,
+      nTriggers: 22,
+      nAlerts: 8,
+      nNoSignal: 0,
+      lastalertutc: Date.now() - 47 * 60000,
       profile: 1,
       color: 9348223
     },
@@ -5031,8 +5398,14 @@ var Clappr=function(){"use strict";function t(t,e,i){return(e=function(t){var e=
       optionDisplay: "Garage",
       optionValue: "garage",
       FPS: 12,
+      fps: 12,
+      fps2: 8,
+      bps: 460000,
+      bps2: 64000,
       width: 1920,
       height: 1080,
+      width2: 640,
+      height2: 360,
       isOnline: true,
       isEnabled: true,
       isMotion: false,
@@ -5043,6 +5416,11 @@ var Clappr=function(){"use strict";function t(t,e,i){return(e=function(t){var e=
       ptz: false,
       audio: false,
       newalerts: 0,
+      clipsCreated: 41,
+      nTriggers: 15,
+      nAlerts: 5,
+      nNoSignal: 0,
+      lastalertutc: Date.now() - 146 * 60000,
       profile: 1,
       color: 6908265
     },
@@ -5050,8 +5428,14 @@ var Clappr=function(){"use strict";function t(t,e,i){return(e=function(t){var e=
       optionDisplay: "Living Room",
       optionValue: "livingroom",
       FPS: 10,
+      fps: 10,
+      fps2: 8,
+      bps: 390000,
+      bps2: 55000,
       width: 1920,
       height: 1080,
+      width2: 640,
+      height2: 360,
       isOnline: true,
       isEnabled: true,
       isMotion: false,
@@ -5062,6 +5446,11 @@ var Clappr=function(){"use strict";function t(t,e,i){return(e=function(t){var e=
       ptz: false,
       audio: true,
       newalerts: 0,
+      clipsCreated: 28,
+      nTriggers: 9,
+      nAlerts: 3,
+      nNoSignal: 0,
+      lastalertutc: Date.now() - 428 * 60000,
       profile: 1,
       color: 12099432
     },
@@ -5069,8 +5458,14 @@ var Clappr=function(){"use strict";function t(t,e,i){return(e=function(t){var e=
       optionDisplay: "Side Gate",
       optionValue: "sidegate",
       FPS: 0,
+      fps: 0,
+      fps2: 0,
+      bps: 0,
+      bps2: 0,
       width: 1920,
       height: 1080,
+      width2: 640,
+      height2: 360,
       isOnline: false,
       isEnabled: true,
       isMotion: false,
@@ -5081,6 +5476,11 @@ var Clappr=function(){"use strict";function t(t,e,i){return(e=function(t){var e=
       ptz: false,
       audio: false,
       newalerts: 0,
+      clipsCreated: 12,
+      nTriggers: 4,
+      nAlerts: 1,
+      nNoSignal: 6,
+      lastalertutc: Date.now() - 2 * 86400000,
       profile: 1,
       error: "Network retry",
       color: 6645093
@@ -5167,6 +5567,12 @@ var Clappr=function(){"use strict";function t(t,e,i){return(e=function(t){var e=
         clips: true,
         clipcreate: true,
         version: "5.9.9.4 x64",
+        support: "Active through Dec 2026",
+        timelimits: true,
+        sessionlimit: 14400,
+        streamlimit: 7200,
+        daylimit: 28800,
+        dayused: 2760,
         tzone: 300,
         profiles: ["Inactive", "Home", "Away", "Night", "Weekend"],
         schedules: ["Default", "Vacation"],
@@ -5194,8 +5600,14 @@ var Clappr=function(){"use strict";function t(t,e,i){return(e=function(t){var e=
         clips: ["42,981 clips", "5.74 TB"],
         warnings: 1,
         alerts: 7,
+        time: Date.now(),
         tzone: 300
       };
+      this.systemLog = [
+        { date: Math.floor(Date.now() / 1000) - 540, level: 1, obj: "Side Gate", msg: "Network retry; camera signal unavailable" },
+        { date: Math.floor(Date.now() / 1000) - 4600, level: 2, obj: "Web server", msg: "A remote stream disconnected unexpectedly", count: 2 },
+        { date: Math.floor(Date.now() / 1000) - 9300, level: 0, obj: "Blue Iris", msg: "Database maintenance complete" }
+      ];
       this.exportJobs = new Map();
       this.alertFlagOverrides = new Map();
       this.ptzCommands = [];
@@ -5221,6 +5633,7 @@ var Clappr=function(){"use strict";function t(t,e,i){return(e=function(t){var e=
     async loadDashboard(options = {}) {
       await delay(300);
       const now = Math.floor(Date.now() / 1000);
+      this.status.time = Date.now();
       const alerts = alertPlan.map(([camera, minutesAgo, type], index) => {
         const recordPath = `@demo-alert-${index}`;
         const defaultFlags = (index < 3 ? 1 : 0) | (index === 0 ? 0 : 65536);
@@ -5278,6 +5691,10 @@ var Clappr=function(){"use strict";function t(t,e,i){return(e=function(t){var e=
         if (typeof payload.signal === "number") this.status.signal = payload.signal;
         if (typeof payload.profile === "number" && payload.profile >= 0) this.status.profile = payload.profile;
         return clone(this.status);
+      }
+      if (command === "log") {
+        const aftertime = Number(payload.aftertime || 0);
+        return clone(this.systemLog.filter((entry) => Number(entry.date || 0) >= aftertime));
       }
       if (command === "ptz") {
         if (payload.button === undefined) {
@@ -6362,6 +6779,10 @@ var Clappr=function(){"use strict";function t(t,e,i){return(e=function(t){var e=
     alerts: [],
     clips: [],
     status: {},
+    systemLog: [],
+    systemLogLoading: false,
+    systemLogError: "",
+    systemLogLoadedAt: 0,
     currentView: "live",
     selectedGroup: "index",
     selectedTimelineDay: "all",
@@ -6427,7 +6848,8 @@ var Clappr=function(){"use strict";function t(t,e,i){return(e=function(t){var e=
       "alertStartDate", "alertEndDate", "alertZoneFilter", "alertSortFilter", "alertSearch",
       "alertFilterStatus", "alertSummary", "alertGrid", "clipSearch",
       "clipViewFilter", "clipTimeline", "clipGrid", "healthMetrics", "shieldControl",
-      "profileControl", "scheduleStatus", "storageList", "serverDetails", "cameraModal",
+      "profileControl", "scheduleStatus", "storageSummary", "storageList", "cameraHealthSummary",
+      "cameraHealth", "systemLogStatus", "systemLogList", "serverDetails", "cameraModal",
       "cameraModalTitle", "cameraModalStatus", "cameraViewport", "cameraStream", "cameraVideo",
       "cameraHlsPlayer", "liveAudioToggle", "liveVolume", "audioMonitorButton",
       "audioMonitorBar", "audioMonitorPlayer", "audioMonitorCameraName", "audioMonitorStatus",
@@ -7161,7 +7583,7 @@ var Clappr=function(){"use strict";function t(t,e,i){return(e=function(t){var e=
     `).join("");
   }
 
-  async function refreshDashboard(initial = false) {
+  async function refreshDashboard(initial = false, options = {}) {
     if (!state.client || state.refreshing) return;
     const requestOptions = alertRequestOptions(!initial);
     if (!requestOptions) return;
@@ -7171,6 +7593,9 @@ var Clappr=function(){"use strict";function t(t,e,i){return(e=function(t){var e=
       const dashboard = await state.client.loadDashboard(requestOptions);
       applyDashboardData(dashboard);
       renderAll({ preserveCameraGrid: !initial });
+      if (state.currentView === "system") {
+        refreshSystemLog(options.forceSystemLog === true).catch(() => {});
+      }
     } catch (error) {
       if (error?.code === "session") {
         showToast("Session ended", "Sign in again to continue.", "error");
@@ -7586,23 +8011,235 @@ var Clappr=function(){"use strict";function t(t,e,i){return(e=function(t){var e=
     };
   }
 
+  function memoryBytesDisplay(bytes) {
+    if (!Number.isFinite(bytes) || bytes <= 0) return { value: "\u2014", tooltip: "" };
+    const gigabytes = bytes / 1073741824;
+    const megabytes = bytes / 1048576;
+    return {
+      value: `${gigabytes.toFixed(gigabytes >= 10 ? 1 : 2)} GB`,
+      tooltip: `${Math.round(megabytes).toLocaleString()} MB`
+    };
+  }
+
+  function optionalNumber(...values) {
+    for (const value of values) {
+      if (value === null || value === undefined || value === "") continue;
+      const parsed = Number.parseFloat(String(value).replace(/,/g, ""));
+      if (Number.isFinite(parsed)) return parsed;
+    }
+    return null;
+  }
+
+  function cameraMainFps(camera) {
+    return optionalNumber(camera.fps, camera.FPS);
+  }
+
+  function cameraStreamBytes(camera) {
+    const main = optionalNumber(camera.bps);
+    const sub = optionalNumber(camera.bps2);
+    if (main === null && sub === null) return null;
+    return Math.max(0, main || 0) + Math.max(0, sub || 0);
+  }
+
+  function formatBitrate(bytesPerSecond) {
+    if (!Number.isFinite(bytesPerSecond)) return "Not reported";
+    const bitsPerSecond = Math.max(0, bytesPerSecond) * 8;
+    if (bitsPerSecond >= 1000000000) return `${(bitsPerSecond / 1000000000).toFixed(2)} Gbps`;
+    if (bitsPerSecond >= 1000000) return `${(bitsPerSecond / 1000000).toFixed(bitsPerSecond >= 10000000 ? 1 : 2)} Mbps`;
+    return `${Math.round(bitsPerSecond / 1000)} Kbps`;
+  }
+
+  function streamResolution(camera, suffix = "") {
+    const width = optionalNumber(camera[`width${suffix}`]);
+    const height = optionalNumber(camera[`height${suffix}`]);
+    return width && height ? `${Math.round(width)}\u00d7${Math.round(height)}` : "Resolution unavailable";
+  }
+
+  function streamDescription(camera, suffix = "") {
+    const fps = suffix ? optionalNumber(camera.fps2) : cameraMainFps(camera);
+    const resolution = streamResolution(camera, suffix);
+    if (fps === null && resolution === "Resolution unavailable") return "Not reported";
+    return `${fps === null ? "\u2014" : `${fps.toFixed(fps >= 10 ? 0 : 1)} FPS`} \u00b7 ${resolution}`;
+  }
+
+  function serverClockDetails(status) {
+    const reported = optionalNumber(status.time);
+    if (reported === null) return { time: "Not reported", drift: "Not available" };
+    const serverMs = reported > 100000000000 ? reported : reported * 1000;
+    const differenceSeconds = Math.round((serverMs - Date.now()) / 1000);
+    const absolute = Math.abs(differenceSeconds);
+    const drift = absolute < 2
+      ? "In sync"
+      : `${absolute} sec ${differenceSeconds > 0 ? "ahead" : "behind"}`;
+    return { time: formatDateTime(serverMs), drift };
+  }
+
+  function formatLimitSeconds(value) {
+    const seconds = optionalNumber(value);
+    if (seconds === null) return "Not reported";
+    if (seconds <= 0) return "Unlimited";
+    return formatDuration(seconds * 1000);
+  }
+
+  function cameraHealthState(camera) {
+    if (camera.isNoSignal) return { label: "No signal", tone: "danger" };
+    if (camera.isOnline === false || camera.isEnabled === false) return { label: "Offline", tone: "danger" };
+    if (camera.error) return { label: "Warning", tone: "warning" };
+    if (camera.isPaused) return { label: "Paused", tone: "muted" };
+    if (camera.isYellow) return { label: "Attention", tone: "warning" };
+    return { label: "Online", tone: "success" };
+  }
+
+  function renderCameraHealth() {
+    const cameras = [...state.cameras].sort((left, right) => {
+      const healthOrder = { danger: 0, warning: 1, muted: 2, success: 3 };
+      const healthDifference = healthOrder[cameraHealthState(left).tone] - healthOrder[cameraHealthState(right).tone];
+      return healthDifference || String(left.optionDisplay || "").localeCompare(String(right.optionDisplay || ""));
+    });
+    const unhealthy = cameras.filter((camera) => cameraHealthState(camera).tone !== "success").length;
+    el.cameraHealthSummary.textContent = cameras.length
+      ? (unhealthy ? `${unhealthy} need attention` : "All cameras healthy")
+      : "No cameras reported";
+    el.cameraHealthSummary.classList.toggle("soft-pill--warning", unhealthy > 0);
+
+    if (!cameras.length) {
+      el.cameraHealth.innerHTML = `<div class="empty-state"><div>${icon("camera")}<strong>No camera metrics</strong><span>Blue Iris did not return a camera list.</span></div></div>`;
+      return;
+    }
+
+    el.cameraHealth.innerHTML = `
+      <div class="camera-health-table-wrap">
+        <table class="camera-health-table">
+          <thead><tr><th>Camera</th><th>Health</th><th>Main stream</th><th>Sub stream</th><th>Bandwidth</th><th>Activity</th><th>Since reset</th><th>Last alert</th></tr></thead>
+          <tbody>
+            ${cameras.map((camera) => {
+              const health = cameraHealthState(camera);
+              const bandwidth = cameraStreamBytes(camera);
+              const mainBandwidth = optionalNumber(camera.bps);
+              const subBandwidth = optionalNumber(camera.bps2);
+              const activities = [
+                camera.isRecording || camera.isManRec ? "Recording" : "",
+                camera.isMotion ? "Motion" : "",
+                camera.isTriggered ? "Triggered" : "",
+                camera.isAlerting ? "Alerting" : ""
+              ].filter(Boolean);
+              const counters = [
+                ["triggers", optionalNumber(camera.nTriggers)],
+                ["alerts", optionalNumber(camera.nAlerts)],
+                ["clips", optionalNumber(camera.clipsCreated)],
+                ["signal losses", optionalNumber(camera.nNoSignal)]
+              ].filter(([, value]) => value !== null);
+              const lastAlert = optionalNumber(camera.lastalertutc);
+              const healthTitle = camera.error || health.label;
+              return `
+                <tr>
+                  <td data-label="Camera"><strong>${escapeHtml(camera.optionDisplay || camera.optionValue || "Camera")}</strong><small>${escapeHtml(camera.optionValue || "")}</small></td>
+                  <td data-label="Health"><span class="health-state health-state--${health.tone}" title="${escapeHtml(healthTitle)}"><span></span>${escapeHtml(health.label)}</span>${camera.error ? `<small title="${escapeHtml(camera.error)}">${escapeHtml(camera.error)}</small>` : ""}</td>
+                  <td data-label="Main stream">${escapeHtml(streamDescription(camera))}</td>
+                  <td data-label="Sub stream">${escapeHtml(streamDescription(camera, "2"))}</td>
+                  <td data-label="Bandwidth"><strong>${escapeHtml(formatBitrate(bandwidth))}</strong>${bandwidth === null ? "" : `<small>Main ${escapeHtml(formatBitrate(mainBandwidth || 0))} \u00b7 Sub ${escapeHtml(formatBitrate(subBandwidth || 0))}</small>`}</td>
+                  <td data-label="Activity"><div class="health-activity">${activities.length ? activities.map((activity) => `<span>${escapeHtml(activity)}</span>`).join("") : "<small>Idle</small>"}</div></td>
+                  <td data-label="Since reset">${counters.length ? counters.map(([label, value]) => `<span class="health-counter"><strong>${Math.round(value).toLocaleString()}</strong> ${escapeHtml(label)}</span>`).join("") : "<small>Not reported</small>"}</td>
+                  <td data-label="Last alert">${lastAlert === null ? "<small>Not reported</small>" : `<strong title="${escapeHtml(formatDateTime(lastAlert))}">${escapeHtml(formatRelative(lastAlert))}</strong>`}</td>
+                </tr>
+              `;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function renderSystemLog() {
+    if (state.systemLogLoading) {
+      el.systemLogStatus.textContent = "Loading messages";
+      el.systemLogList.innerHTML = `<div class="system-log-loading"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Requesting recent messages\u2026</div>`;
+      return;
+    }
+    if (state.systemLogError) {
+      el.systemLogStatus.textContent = "Unavailable";
+      el.systemLogList.innerHTML = `<div class="empty-state"><div>${icon("alert")}<strong>Messages unavailable</strong><span>${escapeHtml(state.systemLogError)}</span></div></div>`;
+      return;
+    }
+
+    const messages = state.systemLog;
+    el.systemLogStatus.textContent = messages.length ? `${messages.length} in the last 24 hours` : "No recent issues";
+    el.systemLogList.innerHTML = messages.length
+      ? messages.map((entry) => {
+          const level = Number(entry.level) === 2 ? "error" : "warning";
+          const date = optionalNumber(entry.date);
+          return `
+            <article class="system-log-entry system-log-entry--${level}">
+              <span class="system-log-entry__marker"></span>
+              <div class="system-log-entry__body">
+                <div><strong>${level === "error" ? "Error" : "Warning"}</strong><span>${escapeHtml(entry.obj || entry.object || "Blue Iris")}</span>${Number(entry.count || 0) > 1 ? `<span>\u00d7${Number(entry.count)}</span>` : ""}</div>
+                <p>${escapeHtml(entry.msg || "No message text")}</p>
+              </div>
+              <time${date === null ? "" : ` title="${escapeHtml(formatDateTime(date))}"`}>${date === null ? "Time unavailable" : escapeHtml(formatRelative(date))}</time>
+            </article>
+          `;
+        }).join("")
+      : `<div class="empty-state system-log-empty"><div>${icon("check")}<strong>All clear</strong><span>No warnings or errors were reported in the last 24 hours.</span></div></div>`;
+  }
+
+  async function refreshSystemLog(force = false) {
+    if (!state.client || state.currentView !== "system" || state.systemLogLoading) return;
+    if (!force && state.systemLogLoadedAt && Date.now() - state.systemLogLoadedAt < 30000) {
+      renderSystemLog();
+      return;
+    }
+
+    state.systemLogLoading = true;
+    state.systemLogError = "";
+    renderSystemLog();
+    try {
+      const aftertime = Math.floor(Date.now() / 1000) - 86400;
+      const response = await state.client.request("log", { aftertime });
+      state.systemLog = (Array.isArray(response) ? response : [])
+        .filter((entry) => Number(entry?.level) === 1 || Number(entry?.level) === 2)
+        .sort((left, right) => Number(right.date || 0) - Number(left.date || 0))
+        .slice(0, 50);
+      state.systemLogLoadedAt = Date.now();
+    } catch (error) {
+      state.systemLogError = error?.message || "Blue Iris did not return its message log.";
+      if (error?.code === "session") {
+        showToast("Session ended", "Sign in again to continue.", "error");
+        await logout(false);
+        return;
+      }
+    } finally {
+      state.systemLogLoading = false;
+      if (state.client && state.currentView === "system") renderSystemLog();
+    }
+  }
+
   function renderSystem() {
     const status = state.status || {};
     const cpu = parsePercent(status.cpu);
     const memory = parsePercent(status.memload);
-    const memoryDisplay = systemMemoryDisplay(status);
+    const processMemory = systemMemoryDisplay(status);
+    const physicalTotalBytes = parseMemoryBytes(status.memphys);
+    const physicalMemory = memoryBytesDisplay(physicalTotalBytes ? physicalTotalBytes * (memory / 100) : 0);
     const online = state.cameras.filter((camera) => camera.isOnline !== false && !camera.isNoSignal).length;
     const cameraPercent = state.cameras.length ? Math.round((online / state.cameras.length) * 100) : 0;
+    const recording = state.cameras.filter((camera) => camera.isRecording || camera.isManRec).length;
+    const bandwidthValues = state.cameras.map(cameraStreamBytes).filter((value) => value !== null);
+    const totalBandwidth = bandwidthValues.length ? bandwidthValues.reduce((total, value) => total + value, 0) : null;
+    const warnings = optionalNumber(status.warnings) || 0;
 
     const metrics = [
       { label: "CPU load", value: `${cpu}%`, bar: cpu, icon: "pulse", detail: cpu < 70 ? "Operating normally" : "Elevated utilization" },
-      { label: "Memory", value: memoryDisplay.value, tooltip: memoryDisplay.tooltip, bar: memory, icon: "server", detail: status.memload ? `${status.memload} physical memory used` : "Blue Iris process" },
+      { label: "System memory", value: physicalMemory.value === "\u2014" ? (status.memload || "\u2014") : physicalMemory.value, tooltip: physicalMemory.tooltip, bar: memory, icon: "server", detail: status.memphys ? `${status.memload || "\u2014"} of ${status.memphys}` : "Physical memory used" },
+      { label: "Blue Iris memory", value: processMemory.value, tooltip: processMemory.tooltip, bar: physicalTotalBytes && processMemory.value !== "\u2014" ? Math.min(100, (parseMemoryBytes(status.ram, true) || parseMemoryBytes(status.mem)) / physicalTotalBytes * 100) : 0, icon: "server", detail: "BlueIris process working set" },
+      { label: "Camera bandwidth", value: totalBandwidth === null ? "\u2014" : formatBitrate(totalBandwidth), bar: totalBandwidth === null ? 0 : Math.min(100, totalBandwidth * 8 / 1000000), icon: "pulse", detail: totalBandwidth === null ? "Not reported by this server" : `${bandwidthValues.length}/${state.cameras.length} cameras reporting` },
       { label: "Connections", value: String(status.cxns ?? "\u2014"), bar: Math.min(100, Number(status.cxns || 0) * 8), icon: "user", detail: "Active server connections" },
-      { label: "Cameras online", value: `${online}/${state.cameras.length}`, bar: cameraPercent, icon: "camera", detail: `${cameraPercent}% available` }
+      { label: "Cameras online", value: `${online}/${state.cameras.length}`, bar: cameraPercent, icon: "camera", detail: `${cameraPercent}% available`, tone: online < state.cameras.length ? "warning" : "" },
+      { label: "Recording", value: `${recording}/${state.cameras.length}`, bar: state.cameras.length ? recording / state.cameras.length * 100 : 0, icon: "record", detail: recording === 1 ? "1 camera recording" : `${recording} cameras recording` },
+      { label: "Warnings", value: String(Math.round(warnings)), bar: Math.min(100, warnings * 20), icon: "alert", detail: warnings ? "Review recent messages" : "No active warnings", tone: warnings ? "danger" : "" }
     ];
 
     el.healthMetrics.innerHTML = metrics.map((metric) => `
-      <article class="metric-card">
+      <article class="metric-card ${metric.tone ? `metric-card--${metric.tone}` : ""}">
         <div class="metric-card__top"><span>${escapeHtml(metric.label)}</span>${icon(metric.icon)}</div>
         <strong${metric.tooltip ? ` title="${escapeHtml(metric.tooltip)}" tabindex="0" aria-label="${escapeHtml(`${metric.label}: ${metric.value}; ${metric.tooltip}`)}"` : ""}>${escapeHtml(metric.value)}</strong>
         <div class="metric-card__bar"><span style="width:${metric.bar}%"></span></div>
@@ -7633,6 +8270,14 @@ var Clappr=function(){"use strict";function t(t,e,i){return(e=function(t){var e=
     el.scheduleStatus.textContent = Number(status.lock || 0) === 0 ? "Schedule running" : Number(status.lock) === 1 ? "Schedule held" : "Temporary hold";
 
     const discs = Array.isArray(status.discs) ? status.discs : [];
+    const clipStats = Array.isArray(status.clips) ? status.clips.filter(Boolean) : (status.clips ? [status.clips] : []);
+    const folders = Array.isArray(status.folders) ? status.folders.filter(Boolean) : [];
+    const storageFacts = [
+      ...clipStats.map((value) => ({ label: "Database", value })),
+      ...(folders.length ? [{ label: "Managed folders", value: `${folders.length} \u00b7 ${folders.join(", ")}` }] : [])
+    ];
+    el.storageSummary.hidden = storageFacts.length === 0;
+    el.storageSummary.innerHTML = storageFacts.map((fact) => `<span><small>${escapeHtml(fact.label)}</small><strong>${escapeHtml(fact.value)}</strong></span>`).join("");
     el.storageList.innerHTML = discs.length
       ? discs.map((disc) => {
           const percent = storagePercent(disc);
@@ -7648,6 +8293,16 @@ var Clappr=function(){"use strict";function t(t,e,i){return(e=function(t){var e=
         }).join("")
       : `<div class="empty-state" style="min-height:170px"><div>${icon("server")}<strong>Storage details unavailable</strong><span>This server did not return disk statistics.</span></div></div>`;
 
+    renderCameraHealth();
+    renderSystemLog();
+
+    const clock = serverClockDetails(status);
+    const dayLimit = optionalNumber(state.permissions.daylimit);
+    const dayUsed = optionalNumber(state.permissions.dayused);
+    const streamUsage = dayLimit !== null && dayLimit > 0
+      ? `${formatLimitSeconds(dayUsed || 0)} of ${formatLimitSeconds(dayLimit)}`
+      : (dayUsed !== null && dayUsed > 0 ? `${formatLimitSeconds(dayUsed)} used \u00b7 Unlimited` : "Unlimited");
+
     const details = [
       ["System", state.client?.serverName || "Blue Iris"],
       ["Version", state.permissions.version || "Not reported"],
@@ -7655,6 +8310,13 @@ var Clappr=function(){"use strict";function t(t,e,i){return(e=function(t){var e=
       ["Session", state.client?.session ? "Secure session active" : "No session"],
       ["Uptime", status.uptime || "Not reported"],
       ["Schedule", status.schedule || "Default"],
+      ["Server time", clock.time],
+      ["Clock difference", clock.drift],
+      ["Installed memory", status.memphys || "Not reported"],
+      ["Maintenance", state.permissions.support || "Not reported"],
+      ["Streaming today", streamUsage],
+      ["Session limit", formatLimitSeconds(state.permissions.sessionlimit)],
+      ["Stream limit", formatLimitSeconds(state.permissions.streamlimit)],
       ["Access", state.permissions.admin ? "Administrator" : "Standard user"],
       ["Clip access", state.permissions.clips === false ? "Restricted" : "Allowed"]
     ];
@@ -8091,6 +8753,10 @@ var Clappr=function(){"use strict";function t(t,e,i){return(e=function(t){var e=
     document.title = `${pageMeta[view].title} \u00b7 Blue Iris Mobile`;
     el.mainContent.focus({ preventScroll: true });
     window.scrollTo({ top: 0, behavior: "smooth" });
+    if (view === "system") {
+      renderSystem();
+      refreshSystemLog(false).catch(() => {});
+    }
   }
 
   function startTimers() {
@@ -9043,6 +9709,10 @@ var Clappr=function(){"use strict";function t(t,e,i){return(e=function(t){var e=
     state.alerts = [];
     state.clips = [];
     state.status = {};
+    state.systemLog = [];
+    state.systemLogLoading = false;
+    state.systemLogError = "";
+    state.systemLogLoadedAt = 0;
     state.activeCamera = null;
     el.appShell.hidden = true;
     el.loginScreen.hidden = false;
@@ -9124,7 +9794,7 @@ var Clappr=function(){"use strict";function t(t,e,i){return(e=function(t){var e=
       } else if (action === "logout") {
         logout();
       } else if (action === "refresh") {
-        refreshDashboard(false);
+        refreshDashboard(false, { forceSystemLog: state.currentView === "system" });
       } else if (action === "cycle-shield") {
         cycleShield();
       } else if (action === "fullscreen-viewer") {

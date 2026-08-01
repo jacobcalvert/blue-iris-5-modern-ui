@@ -48,6 +48,10 @@
     alerts: [],
     clips: [],
     status: {},
+    systemLog: [],
+    systemLogLoading: false,
+    systemLogError: "",
+    systemLogLoadedAt: 0,
     currentView: "live",
     selectedGroup: "index",
     selectedTimelineDay: "all",
@@ -113,7 +117,8 @@
       "alertStartDate", "alertEndDate", "alertZoneFilter", "alertSortFilter", "alertSearch",
       "alertFilterStatus", "alertSummary", "alertGrid", "clipSearch",
       "clipViewFilter", "clipTimeline", "clipGrid", "healthMetrics", "shieldControl",
-      "profileControl", "scheduleStatus", "storageList", "serverDetails", "cameraModal",
+      "profileControl", "scheduleStatus", "storageSummary", "storageList", "cameraHealthSummary",
+      "cameraHealth", "systemLogStatus", "systemLogList", "serverDetails", "cameraModal",
       "cameraModalTitle", "cameraModalStatus", "cameraViewport", "cameraStream", "cameraVideo",
       "cameraHlsPlayer", "liveAudioToggle", "liveVolume", "audioMonitorButton",
       "audioMonitorBar", "audioMonitorPlayer", "audioMonitorCameraName", "audioMonitorStatus",
@@ -847,7 +852,7 @@
     `).join("");
   }
 
-  async function refreshDashboard(initial = false) {
+  async function refreshDashboard(initial = false, options = {}) {
     if (!state.client || state.refreshing) return;
     const requestOptions = alertRequestOptions(!initial);
     if (!requestOptions) return;
@@ -857,6 +862,9 @@
       const dashboard = await state.client.loadDashboard(requestOptions);
       applyDashboardData(dashboard);
       renderAll({ preserveCameraGrid: !initial });
+      if (state.currentView === "system") {
+        refreshSystemLog(options.forceSystemLog === true).catch(() => {});
+      }
     } catch (error) {
       if (error?.code === "session") {
         showToast("Session ended", "Sign in again to continue.", "error");
@@ -1272,23 +1280,235 @@
     };
   }
 
+  function memoryBytesDisplay(bytes) {
+    if (!Number.isFinite(bytes) || bytes <= 0) return { value: "—", tooltip: "" };
+    const gigabytes = bytes / 1073741824;
+    const megabytes = bytes / 1048576;
+    return {
+      value: `${gigabytes.toFixed(gigabytes >= 10 ? 1 : 2)} GB`,
+      tooltip: `${Math.round(megabytes).toLocaleString()} MB`
+    };
+  }
+
+  function optionalNumber(...values) {
+    for (const value of values) {
+      if (value === null || value === undefined || value === "") continue;
+      const parsed = Number.parseFloat(String(value).replace(/,/g, ""));
+      if (Number.isFinite(parsed)) return parsed;
+    }
+    return null;
+  }
+
+  function cameraMainFps(camera) {
+    return optionalNumber(camera.fps, camera.FPS);
+  }
+
+  function cameraStreamBytes(camera) {
+    const main = optionalNumber(camera.bps);
+    const sub = optionalNumber(camera.bps2);
+    if (main === null && sub === null) return null;
+    return Math.max(0, main || 0) + Math.max(0, sub || 0);
+  }
+
+  function formatBitrate(bytesPerSecond) {
+    if (!Number.isFinite(bytesPerSecond)) return "Not reported";
+    const bitsPerSecond = Math.max(0, bytesPerSecond) * 8;
+    if (bitsPerSecond >= 1000000000) return `${(bitsPerSecond / 1000000000).toFixed(2)} Gbps`;
+    if (bitsPerSecond >= 1000000) return `${(bitsPerSecond / 1000000).toFixed(bitsPerSecond >= 10000000 ? 1 : 2)} Mbps`;
+    return `${Math.round(bitsPerSecond / 1000)} Kbps`;
+  }
+
+  function streamResolution(camera, suffix = "") {
+    const width = optionalNumber(camera[`width${suffix}`]);
+    const height = optionalNumber(camera[`height${suffix}`]);
+    return width && height ? `${Math.round(width)}×${Math.round(height)}` : "Resolution unavailable";
+  }
+
+  function streamDescription(camera, suffix = "") {
+    const fps = suffix ? optionalNumber(camera.fps2) : cameraMainFps(camera);
+    const resolution = streamResolution(camera, suffix);
+    if (fps === null && resolution === "Resolution unavailable") return "Not reported";
+    return `${fps === null ? "—" : `${fps.toFixed(fps >= 10 ? 0 : 1)} FPS`} · ${resolution}`;
+  }
+
+  function serverClockDetails(status) {
+    const reported = optionalNumber(status.time);
+    if (reported === null) return { time: "Not reported", drift: "Not available" };
+    const serverMs = reported > 100000000000 ? reported : reported * 1000;
+    const differenceSeconds = Math.round((serverMs - Date.now()) / 1000);
+    const absolute = Math.abs(differenceSeconds);
+    const drift = absolute < 2
+      ? "In sync"
+      : `${absolute} sec ${differenceSeconds > 0 ? "ahead" : "behind"}`;
+    return { time: formatDateTime(serverMs), drift };
+  }
+
+  function formatLimitSeconds(value) {
+    const seconds = optionalNumber(value);
+    if (seconds === null) return "Not reported";
+    if (seconds <= 0) return "Unlimited";
+    return formatDuration(seconds * 1000);
+  }
+
+  function cameraHealthState(camera) {
+    if (camera.isNoSignal) return { label: "No signal", tone: "danger" };
+    if (camera.isOnline === false || camera.isEnabled === false) return { label: "Offline", tone: "danger" };
+    if (camera.error) return { label: "Warning", tone: "warning" };
+    if (camera.isPaused) return { label: "Paused", tone: "muted" };
+    if (camera.isYellow) return { label: "Attention", tone: "warning" };
+    return { label: "Online", tone: "success" };
+  }
+
+  function renderCameraHealth() {
+    const cameras = [...state.cameras].sort((left, right) => {
+      const healthOrder = { danger: 0, warning: 1, muted: 2, success: 3 };
+      const healthDifference = healthOrder[cameraHealthState(left).tone] - healthOrder[cameraHealthState(right).tone];
+      return healthDifference || String(left.optionDisplay || "").localeCompare(String(right.optionDisplay || ""));
+    });
+    const unhealthy = cameras.filter((camera) => cameraHealthState(camera).tone !== "success").length;
+    el.cameraHealthSummary.textContent = cameras.length
+      ? (unhealthy ? `${unhealthy} need attention` : "All cameras healthy")
+      : "No cameras reported";
+    el.cameraHealthSummary.classList.toggle("soft-pill--warning", unhealthy > 0);
+
+    if (!cameras.length) {
+      el.cameraHealth.innerHTML = `<div class="empty-state"><div>${icon("camera")}<strong>No camera metrics</strong><span>Blue Iris did not return a camera list.</span></div></div>`;
+      return;
+    }
+
+    el.cameraHealth.innerHTML = `
+      <div class="camera-health-table-wrap">
+        <table class="camera-health-table">
+          <thead><tr><th>Camera</th><th>Health</th><th>Main stream</th><th>Sub stream</th><th>Bandwidth</th><th>Activity</th><th>Since reset</th><th>Last alert</th></tr></thead>
+          <tbody>
+            ${cameras.map((camera) => {
+              const health = cameraHealthState(camera);
+              const bandwidth = cameraStreamBytes(camera);
+              const mainBandwidth = optionalNumber(camera.bps);
+              const subBandwidth = optionalNumber(camera.bps2);
+              const activities = [
+                camera.isRecording || camera.isManRec ? "Recording" : "",
+                camera.isMotion ? "Motion" : "",
+                camera.isTriggered ? "Triggered" : "",
+                camera.isAlerting ? "Alerting" : ""
+              ].filter(Boolean);
+              const counters = [
+                ["triggers", optionalNumber(camera.nTriggers)],
+                ["alerts", optionalNumber(camera.nAlerts)],
+                ["clips", optionalNumber(camera.clipsCreated)],
+                ["signal losses", optionalNumber(camera.nNoSignal)]
+              ].filter(([, value]) => value !== null);
+              const lastAlert = optionalNumber(camera.lastalertutc);
+              const healthTitle = camera.error || health.label;
+              return `
+                <tr>
+                  <td data-label="Camera"><strong>${escapeHtml(camera.optionDisplay || camera.optionValue || "Camera")}</strong><small>${escapeHtml(camera.optionValue || "")}</small></td>
+                  <td data-label="Health"><span class="health-state health-state--${health.tone}" title="${escapeHtml(healthTitle)}"><span></span>${escapeHtml(health.label)}</span>${camera.error ? `<small title="${escapeHtml(camera.error)}">${escapeHtml(camera.error)}</small>` : ""}</td>
+                  <td data-label="Main stream">${escapeHtml(streamDescription(camera))}</td>
+                  <td data-label="Sub stream">${escapeHtml(streamDescription(camera, "2"))}</td>
+                  <td data-label="Bandwidth"><strong>${escapeHtml(formatBitrate(bandwidth))}</strong>${bandwidth === null ? "" : `<small>Main ${escapeHtml(formatBitrate(mainBandwidth || 0))} · Sub ${escapeHtml(formatBitrate(subBandwidth || 0))}</small>`}</td>
+                  <td data-label="Activity"><div class="health-activity">${activities.length ? activities.map((activity) => `<span>${escapeHtml(activity)}</span>`).join("") : "<small>Idle</small>"}</div></td>
+                  <td data-label="Since reset">${counters.length ? counters.map(([label, value]) => `<span class="health-counter"><strong>${Math.round(value).toLocaleString()}</strong> ${escapeHtml(label)}</span>`).join("") : "<small>Not reported</small>"}</td>
+                  <td data-label="Last alert">${lastAlert === null ? "<small>Not reported</small>" : `<strong title="${escapeHtml(formatDateTime(lastAlert))}">${escapeHtml(formatRelative(lastAlert))}</strong>`}</td>
+                </tr>
+              `;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function renderSystemLog() {
+    if (state.systemLogLoading) {
+      el.systemLogStatus.textContent = "Loading messages";
+      el.systemLogList.innerHTML = `<div class="system-log-loading"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Requesting recent messages…</div>`;
+      return;
+    }
+    if (state.systemLogError) {
+      el.systemLogStatus.textContent = "Unavailable";
+      el.systemLogList.innerHTML = `<div class="empty-state"><div>${icon("alert")}<strong>Messages unavailable</strong><span>${escapeHtml(state.systemLogError)}</span></div></div>`;
+      return;
+    }
+
+    const messages = state.systemLog;
+    el.systemLogStatus.textContent = messages.length ? `${messages.length} in the last 24 hours` : "No recent issues";
+    el.systemLogList.innerHTML = messages.length
+      ? messages.map((entry) => {
+          const level = Number(entry.level) === 2 ? "error" : "warning";
+          const date = optionalNumber(entry.date);
+          return `
+            <article class="system-log-entry system-log-entry--${level}">
+              <span class="system-log-entry__marker"></span>
+              <div class="system-log-entry__body">
+                <div><strong>${level === "error" ? "Error" : "Warning"}</strong><span>${escapeHtml(entry.obj || entry.object || "Blue Iris")}</span>${Number(entry.count || 0) > 1 ? `<span>×${Number(entry.count)}</span>` : ""}</div>
+                <p>${escapeHtml(entry.msg || "No message text")}</p>
+              </div>
+              <time${date === null ? "" : ` title="${escapeHtml(formatDateTime(date))}"`}>${date === null ? "Time unavailable" : escapeHtml(formatRelative(date))}</time>
+            </article>
+          `;
+        }).join("")
+      : `<div class="empty-state system-log-empty"><div>${icon("check")}<strong>All clear</strong><span>No warnings or errors were reported in the last 24 hours.</span></div></div>`;
+  }
+
+  async function refreshSystemLog(force = false) {
+    if (!state.client || state.currentView !== "system" || state.systemLogLoading) return;
+    if (!force && state.systemLogLoadedAt && Date.now() - state.systemLogLoadedAt < 30000) {
+      renderSystemLog();
+      return;
+    }
+
+    state.systemLogLoading = true;
+    state.systemLogError = "";
+    renderSystemLog();
+    try {
+      const aftertime = Math.floor(Date.now() / 1000) - 86400;
+      const response = await state.client.request("log", { aftertime });
+      state.systemLog = (Array.isArray(response) ? response : [])
+        .filter((entry) => Number(entry?.level) === 1 || Number(entry?.level) === 2)
+        .sort((left, right) => Number(right.date || 0) - Number(left.date || 0))
+        .slice(0, 50);
+      state.systemLogLoadedAt = Date.now();
+    } catch (error) {
+      state.systemLogError = error?.message || "Blue Iris did not return its message log.";
+      if (error?.code === "session") {
+        showToast("Session ended", "Sign in again to continue.", "error");
+        await logout(false);
+        return;
+      }
+    } finally {
+      state.systemLogLoading = false;
+      if (state.client && state.currentView === "system") renderSystemLog();
+    }
+  }
+
   function renderSystem() {
     const status = state.status || {};
     const cpu = parsePercent(status.cpu);
     const memory = parsePercent(status.memload);
-    const memoryDisplay = systemMemoryDisplay(status);
+    const processMemory = systemMemoryDisplay(status);
+    const physicalTotalBytes = parseMemoryBytes(status.memphys);
+    const physicalMemory = memoryBytesDisplay(physicalTotalBytes ? physicalTotalBytes * (memory / 100) : 0);
     const online = state.cameras.filter((camera) => camera.isOnline !== false && !camera.isNoSignal).length;
     const cameraPercent = state.cameras.length ? Math.round((online / state.cameras.length) * 100) : 0;
+    const recording = state.cameras.filter((camera) => camera.isRecording || camera.isManRec).length;
+    const bandwidthValues = state.cameras.map(cameraStreamBytes).filter((value) => value !== null);
+    const totalBandwidth = bandwidthValues.length ? bandwidthValues.reduce((total, value) => total + value, 0) : null;
+    const warnings = optionalNumber(status.warnings) || 0;
 
     const metrics = [
       { label: "CPU load", value: `${cpu}%`, bar: cpu, icon: "pulse", detail: cpu < 70 ? "Operating normally" : "Elevated utilization" },
-      { label: "Memory", value: memoryDisplay.value, tooltip: memoryDisplay.tooltip, bar: memory, icon: "server", detail: status.memload ? `${status.memload} physical memory used` : "Blue Iris process" },
+      { label: "System memory", value: physicalMemory.value === "—" ? (status.memload || "—") : physicalMemory.value, tooltip: physicalMemory.tooltip, bar: memory, icon: "server", detail: status.memphys ? `${status.memload || "—"} of ${status.memphys}` : "Physical memory used" },
+      { label: "Blue Iris memory", value: processMemory.value, tooltip: processMemory.tooltip, bar: physicalTotalBytes && processMemory.value !== "—" ? Math.min(100, (parseMemoryBytes(status.ram, true) || parseMemoryBytes(status.mem)) / physicalTotalBytes * 100) : 0, icon: "server", detail: "BlueIris process working set" },
+      { label: "Camera bandwidth", value: totalBandwidth === null ? "—" : formatBitrate(totalBandwidth), bar: totalBandwidth === null ? 0 : Math.min(100, totalBandwidth * 8 / 1000000), icon: "pulse", detail: totalBandwidth === null ? "Not reported by this server" : `${bandwidthValues.length}/${state.cameras.length} cameras reporting` },
       { label: "Connections", value: String(status.cxns ?? "—"), bar: Math.min(100, Number(status.cxns || 0) * 8), icon: "user", detail: "Active server connections" },
-      { label: "Cameras online", value: `${online}/${state.cameras.length}`, bar: cameraPercent, icon: "camera", detail: `${cameraPercent}% available` }
+      { label: "Cameras online", value: `${online}/${state.cameras.length}`, bar: cameraPercent, icon: "camera", detail: `${cameraPercent}% available`, tone: online < state.cameras.length ? "warning" : "" },
+      { label: "Recording", value: `${recording}/${state.cameras.length}`, bar: state.cameras.length ? recording / state.cameras.length * 100 : 0, icon: "record", detail: recording === 1 ? "1 camera recording" : `${recording} cameras recording` },
+      { label: "Warnings", value: String(Math.round(warnings)), bar: Math.min(100, warnings * 20), icon: "alert", detail: warnings ? "Review recent messages" : "No active warnings", tone: warnings ? "danger" : "" }
     ];
 
     el.healthMetrics.innerHTML = metrics.map((metric) => `
-      <article class="metric-card">
+      <article class="metric-card ${metric.tone ? `metric-card--${metric.tone}` : ""}">
         <div class="metric-card__top"><span>${escapeHtml(metric.label)}</span>${icon(metric.icon)}</div>
         <strong${metric.tooltip ? ` title="${escapeHtml(metric.tooltip)}" tabindex="0" aria-label="${escapeHtml(`${metric.label}: ${metric.value}; ${metric.tooltip}`)}"` : ""}>${escapeHtml(metric.value)}</strong>
         <div class="metric-card__bar"><span style="width:${metric.bar}%"></span></div>
@@ -1319,6 +1539,14 @@
     el.scheduleStatus.textContent = Number(status.lock || 0) === 0 ? "Schedule running" : Number(status.lock) === 1 ? "Schedule held" : "Temporary hold";
 
     const discs = Array.isArray(status.discs) ? status.discs : [];
+    const clipStats = Array.isArray(status.clips) ? status.clips.filter(Boolean) : (status.clips ? [status.clips] : []);
+    const folders = Array.isArray(status.folders) ? status.folders.filter(Boolean) : [];
+    const storageFacts = [
+      ...clipStats.map((value) => ({ label: "Database", value })),
+      ...(folders.length ? [{ label: "Managed folders", value: `${folders.length} · ${folders.join(", ")}` }] : [])
+    ];
+    el.storageSummary.hidden = storageFacts.length === 0;
+    el.storageSummary.innerHTML = storageFacts.map((fact) => `<span><small>${escapeHtml(fact.label)}</small><strong>${escapeHtml(fact.value)}</strong></span>`).join("");
     el.storageList.innerHTML = discs.length
       ? discs.map((disc) => {
           const percent = storagePercent(disc);
@@ -1334,6 +1562,16 @@
         }).join("")
       : `<div class="empty-state" style="min-height:170px"><div>${icon("server")}<strong>Storage details unavailable</strong><span>This server did not return disk statistics.</span></div></div>`;
 
+    renderCameraHealth();
+    renderSystemLog();
+
+    const clock = serverClockDetails(status);
+    const dayLimit = optionalNumber(state.permissions.daylimit);
+    const dayUsed = optionalNumber(state.permissions.dayused);
+    const streamUsage = dayLimit !== null && dayLimit > 0
+      ? `${formatLimitSeconds(dayUsed || 0)} of ${formatLimitSeconds(dayLimit)}`
+      : (dayUsed !== null && dayUsed > 0 ? `${formatLimitSeconds(dayUsed)} used · Unlimited` : "Unlimited");
+
     const details = [
       ["System", state.client?.serverName || "Blue Iris"],
       ["Version", state.permissions.version || "Not reported"],
@@ -1341,6 +1579,13 @@
       ["Session", state.client?.session ? "Secure session active" : "No session"],
       ["Uptime", status.uptime || "Not reported"],
       ["Schedule", status.schedule || "Default"],
+      ["Server time", clock.time],
+      ["Clock difference", clock.drift],
+      ["Installed memory", status.memphys || "Not reported"],
+      ["Maintenance", state.permissions.support || "Not reported"],
+      ["Streaming today", streamUsage],
+      ["Session limit", formatLimitSeconds(state.permissions.sessionlimit)],
+      ["Stream limit", formatLimitSeconds(state.permissions.streamlimit)],
       ["Access", state.permissions.admin ? "Administrator" : "Standard user"],
       ["Clip access", state.permissions.clips === false ? "Restricted" : "Allowed"]
     ];
@@ -1777,6 +2022,10 @@
     document.title = `${pageMeta[view].title} · Blue Iris Mobile`;
     el.mainContent.focus({ preventScroll: true });
     window.scrollTo({ top: 0, behavior: "smooth" });
+    if (view === "system") {
+      renderSystem();
+      refreshSystemLog(false).catch(() => {});
+    }
   }
 
   function startTimers() {
@@ -2729,6 +2978,10 @@
     state.alerts = [];
     state.clips = [];
     state.status = {};
+    state.systemLog = [];
+    state.systemLogLoading = false;
+    state.systemLogError = "";
+    state.systemLogLoadedAt = 0;
     state.activeCamera = null;
     el.appShell.hidden = true;
     el.loginScreen.hidden = false;
@@ -2810,7 +3063,7 @@
       } else if (action === "logout") {
         logout();
       } else if (action === "refresh") {
-        refreshDashboard(false);
+        refreshDashboard(false, { forceSystemLog: state.currentView === "system" });
       } else if (action === "cycle-shield") {
         cycleShield();
       } else if (action === "fullscreen-viewer") {

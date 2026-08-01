@@ -403,7 +403,22 @@
               <div><span class="eyebrow">Capacity</span><h3>Storage</h3></div>
               <svg class="icon icon-muted"><use href="#i-server"/></svg>
             </div>
+            <div id="storageSummary" class="storage-summary"></div>
             <div id="storageList" class="storage-list"></div>
+          </section>
+          <section class="surface-panel system-wide-panel">
+            <div class="panel-heading">
+              <div><span class="eyebrow">Cameras</span><h3>Stream & camera health</h3></div>
+              <span id="cameraHealthSummary" class="soft-pill">Checking cameras</span>
+            </div>
+            <div id="cameraHealth" class="camera-health"></div>
+          </section>
+          <section class="surface-panel system-wide-panel">
+            <div class="panel-heading">
+              <div><span class="eyebrow">Messages</span><h3>Recent warnings & errors</h3></div>
+              <span id="systemLogStatus" class="soft-pill">Open System to load</span>
+            </div>
+            <div id="systemLogList" class="system-log-list" aria-live="polite"></div>
           </section>
           <section class="surface-panel system-details-panel">
             <div class="panel-heading">

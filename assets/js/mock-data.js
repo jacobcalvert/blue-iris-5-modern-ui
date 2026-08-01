@@ -15,8 +15,14 @@
       optionDisplay: "Front Door",
       optionValue: "frontdoor",
       FPS: 15,
+      fps: 15,
+      fps2: 10,
+      bps: 690000,
+      bps2: 92000,
       width: 2560,
       height: 1440,
+      width2: 640,
+      height2: 360,
       isOnline: true,
       isEnabled: true,
       isMotion: true,
@@ -27,6 +33,11 @@
       ptz: false,
       audio: true,
       newalerts: 4,
+      clipsCreated: 128,
+      nTriggers: 46,
+      nAlerts: 19,
+      nNoSignal: 0,
+      lastalertutc: Date.now() - 4 * 60000,
       profile: 1,
       color: 5488154
     },
@@ -34,8 +45,14 @@
       optionDisplay: "Driveway",
       optionValue: "driveway",
       FPS: 20,
+      fps: 20,
+      fps2: 12,
+      bps: 1080000,
+      bps2: 124000,
       width: 3840,
       height: 2160,
+      width2: 720,
+      height2: 404,
       isOnline: true,
       isEnabled: true,
       isMotion: false,
@@ -46,6 +63,11 @@
       ptz: true,
       audio: true,
       newalerts: 2,
+      clipsCreated: 93,
+      nTriggers: 31,
+      nAlerts: 12,
+      nNoSignal: 1,
+      lastalertutc: Date.now() - 22 * 60000,
       profile: 1,
       color: 16745808
     },
@@ -53,8 +75,14 @@
       optionDisplay: "Backyard",
       optionValue: "backyard",
       FPS: 15,
+      fps: 15,
+      fps2: 10,
+      bps: 580000,
+      bps2: 78000,
       width: 1920,
       height: 1080,
+      width2: 640,
+      height2: 360,
       isOnline: true,
       isEnabled: true,
       isMotion: false,
@@ -65,6 +93,11 @@
       ptz: true,
       audio: true,
       newalerts: 1,
+      clipsCreated: 67,
+      nTriggers: 22,
+      nAlerts: 8,
+      nNoSignal: 0,
+      lastalertutc: Date.now() - 47 * 60000,
       profile: 1,
       color: 9348223
     },
@@ -72,8 +105,14 @@
       optionDisplay: "Garage",
       optionValue: "garage",
       FPS: 12,
+      fps: 12,
+      fps2: 8,
+      bps: 460000,
+      bps2: 64000,
       width: 1920,
       height: 1080,
+      width2: 640,
+      height2: 360,
       isOnline: true,
       isEnabled: true,
       isMotion: false,
@@ -84,6 +123,11 @@
       ptz: false,
       audio: false,
       newalerts: 0,
+      clipsCreated: 41,
+      nTriggers: 15,
+      nAlerts: 5,
+      nNoSignal: 0,
+      lastalertutc: Date.now() - 146 * 60000,
       profile: 1,
       color: 6908265
     },
@@ -91,8 +135,14 @@
       optionDisplay: "Living Room",
       optionValue: "livingroom",
       FPS: 10,
+      fps: 10,
+      fps2: 8,
+      bps: 390000,
+      bps2: 55000,
       width: 1920,
       height: 1080,
+      width2: 640,
+      height2: 360,
       isOnline: true,
       isEnabled: true,
       isMotion: false,
@@ -103,6 +153,11 @@
       ptz: false,
       audio: true,
       newalerts: 0,
+      clipsCreated: 28,
+      nTriggers: 9,
+      nAlerts: 3,
+      nNoSignal: 0,
+      lastalertutc: Date.now() - 428 * 60000,
       profile: 1,
       color: 12099432
     },
@@ -110,8 +165,14 @@
       optionDisplay: "Side Gate",
       optionValue: "sidegate",
       FPS: 0,
+      fps: 0,
+      fps2: 0,
+      bps: 0,
+      bps2: 0,
       width: 1920,
       height: 1080,
+      width2: 640,
+      height2: 360,
       isOnline: false,
       isEnabled: true,
       isMotion: false,
@@ -122,6 +183,11 @@
       ptz: false,
       audio: false,
       newalerts: 0,
+      clipsCreated: 12,
+      nTriggers: 4,
+      nAlerts: 1,
+      nNoSignal: 6,
+      lastalertutc: Date.now() - 2 * 86400000,
       profile: 1,
       error: "Network retry",
       color: 6645093
@@ -208,6 +274,12 @@
         clips: true,
         clipcreate: true,
         version: "5.9.9.4 x64",
+        support: "Active through Dec 2026",
+        timelimits: true,
+        sessionlimit: 14400,
+        streamlimit: 7200,
+        daylimit: 28800,
+        dayused: 2760,
         tzone: 300,
         profiles: ["Inactive", "Home", "Away", "Night", "Weekend"],
         schedules: ["Default", "Vacation"],
@@ -235,8 +307,14 @@
         clips: ["42,981 clips", "5.74 TB"],
         warnings: 1,
         alerts: 7,
+        time: Date.now(),
         tzone: 300
       };
+      this.systemLog = [
+        { date: Math.floor(Date.now() / 1000) - 540, level: 1, obj: "Side Gate", msg: "Network retry; camera signal unavailable" },
+        { date: Math.floor(Date.now() / 1000) - 4600, level: 2, obj: "Web server", msg: "A remote stream disconnected unexpectedly", count: 2 },
+        { date: Math.floor(Date.now() / 1000) - 9300, level: 0, obj: "Blue Iris", msg: "Database maintenance complete" }
+      ];
       this.exportJobs = new Map();
       this.alertFlagOverrides = new Map();
       this.ptzCommands = [];
@@ -262,6 +340,7 @@
     async loadDashboard(options = {}) {
       await delay(300);
       const now = Math.floor(Date.now() / 1000);
+      this.status.time = Date.now();
       const alerts = alertPlan.map(([camera, minutesAgo, type], index) => {
         const recordPath = `@demo-alert-${index}`;
         const defaultFlags = (index < 3 ? 1 : 0) | (index === 0 ? 0 : 65536);
@@ -319,6 +398,10 @@
         if (typeof payload.signal === "number") this.status.signal = payload.signal;
         if (typeof payload.profile === "number" && payload.profile >= 0) this.status.profile = payload.profile;
         return clone(this.status);
+      }
+      if (command === "log") {
+        const aftertime = Number(payload.aftertime || 0);
+        return clone(this.systemLog.filter((entry) => Number(entry.date || 0) >= aftertime));
       }
       if (command === "ptz") {
         if (payload.button === undefined) {
