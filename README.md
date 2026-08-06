@@ -94,11 +94,12 @@ A static browser app cannot bypass browser security:
 ## Background audio monitor
 
 The single-camera viewer's **Monitor** control uses the audio track in Blue Iris's HLS stream
-on browsers with native HLS support, including iOS. Other browsers fall back to Blue Iris's
-`/audio/{camera}/temp.wav` stream. A persistent HTML audio player keeps playing after the
-camera dialog closes, exposes pause/stop metadata through the browser's lock-screen media
-controls, and reconnects transiently interrupted streams. The floating monitor bar controls
-volume, pause/resume, and stop.
+through Apple's native media stack on iPhone and iPad. Android and other platforms use Blue
+Iris's audio-only `/audio/{camera}/temp.wav` stream so a video-backed HLS feed is not throttled
+when the screen locks. A persistent HTML audio player keeps playing after the camera dialog
+closes, exposes pause/stop metadata through the browser's lock-screen media controls, and
+reconnects transiently interrupted streams. The floating monitor bar controls volume,
+pause/resume, and stop.
 
 This native media path is substantially more background-friendly than the app's Web Audio
 decoder, but the operating system and browser retain final control over lock-screen playback.

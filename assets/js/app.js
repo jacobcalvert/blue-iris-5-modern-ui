@@ -1890,10 +1890,21 @@
     );
   }
 
+  function isAppleMobilePlatform() {
+    const userAgent = String(navigator.userAgent || "");
+    const platform = String(navigator.platform || "");
+    return /iPad|iPhone|iPod/i.test(userAgent) ||
+      (platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  }
+
   function audioMonitorSource() {
     if (!state.audioMonitorCamera) return "";
     const cameraId = state.audioMonitorCamera.optionValue;
-    if (nativeHlsAudioSupported() && state.client?.monitorHlsUrl) {
+    // Blue Iris HLS also carries video. It is reliable through Apple's native
+    // media stack, but Android may throttle that video-backed stream when the
+    // screen locks. Keep Android on the true audio-only WAV endpoint so Chrome
+    // retains audio focus and lock-screen media playback.
+    if (isAppleMobilePlatform() && nativeHlsAudioSupported() && state.client?.monitorHlsUrl) {
       return state.client.monitorHlsUrl(cameraId);
     }
     return state.client?.monitorAudioUrl?.(cameraId) || "";
