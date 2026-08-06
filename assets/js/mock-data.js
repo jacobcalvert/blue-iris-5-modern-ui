@@ -508,6 +508,10 @@
       return "";
     }
 
+    monitorHlsUrl() {
+      return "";
+    }
+
     viewerSnapshotUrl(camera) {
       return this.imageUrl(camera);
     }

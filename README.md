@@ -93,9 +93,10 @@ A static browser app cannot bypass browser security:
 
 ## Background audio monitor
 
-The single-camera viewer's **Monitor** control starts Blue Iris's native
-`/audio/{camera}/temp.wav` stream in a persistent HTML audio player. It keeps playing after
-the camera dialog closes, exposes pause/stop metadata through the browser's lock-screen media
+The single-camera viewer's **Monitor** control uses the audio track in Blue Iris's HLS stream
+on browsers with native HLS support, including iOS. Other browsers fall back to Blue Iris's
+`/audio/{camera}/temp.wav` stream. A persistent HTML audio player keeps playing after the
+camera dialog closes, exposes pause/stop metadata through the browser's lock-screen media
 controls, and reconnects transiently interrupted streams. The floating monitor bar controls
 volume, pause/resume, and stop.
 

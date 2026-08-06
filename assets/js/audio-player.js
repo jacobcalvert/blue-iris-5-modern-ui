@@ -1,6 +1,34 @@
 (function () {
   "use strict";
 
+  let sharedAudioContext = null;
+
+  function getSharedAudioContext() {
+    if (sharedAudioContext) return sharedAudioContext;
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) throw new Error("Web Audio is unavailable in this browser.");
+    sharedAudioContext = new AudioContext();
+    return sharedAudioContext;
+  }
+
+  async function unlockBlueIrisAudio() {
+    const context = getSharedAudioContext();
+    if (context.state !== "running") await context.resume();
+
+    // Starting a silent buffer during the tap gives iOS an explicit media
+    // activation to associate with this shared context.
+    const buffer = context.createBuffer(1, 1, context.sampleRate || 44100);
+    const source = context.createBufferSource();
+    source.buffer = buffer;
+    source.connect(context.destination);
+    source.start(0);
+
+    if (context.state !== "running") {
+      throw new Error("Audio is blocked. Tap the audio control again to allow playback.");
+    }
+    return context;
+  }
+
   class ByteQueue {
     constructor() {
       this.chunks = [];
@@ -72,9 +100,7 @@
 
     ensureContext() {
       if (this.context) return;
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContext) throw new Error("Web Audio is unavailable in this browser.");
-      this.context = new AudioContext();
+      this.context = getSharedAudioContext();
       this.gain = this.context.createGain();
       this.gain.connect(this.context.destination);
       this.setVolume(this.volume);
@@ -236,5 +262,6 @@
     }
   }
 
+  window.unlockBlueIrisAudio = unlockBlueIrisAudio;
   window.BlueIrisPcmAudioPlayer = BlueIrisPcmAudioPlayer;
 })();

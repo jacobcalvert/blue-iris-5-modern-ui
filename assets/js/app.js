@@ -1682,7 +1682,22 @@
     applyGridVolume();
   }
 
-  function startGridAudio() {
+  async function unlockAudioPlayback() {
+    try {
+      if (navigator.audioSession) navigator.audioSession.type = "playback";
+      if (window.unlockBlueIrisAudio) await window.unlockBlueIrisAudio();
+      return true;
+    } catch (error) {
+      showToast(
+        "Tap to enable audio",
+        error?.message || "This browser did not allow audio playback. Tap the audio control again.",
+        "error"
+      );
+      return false;
+    }
+  }
+
+  async function startGridAudio() {
     if (state.client?.isDemo) {
       showToast("Audio unavailable in demo", "Connect to Blue Iris to listen to camera audio.");
       return;
@@ -1691,15 +1706,16 @@
       showToast("No camera audio", "None of the visible online cameras report an audio channel.");
       return;
     }
+    if (!(await unlockAudioPlayback())) return;
     if (state.audioMonitorActive) stopAudioMonitor(false);
     state.gridAudioEnabled = true;
     syncGridAudio();
     updateGridAudioControls();
   }
 
-  function toggleGridAudio() {
+  async function toggleGridAudio() {
     if (state.gridAudioEnabled) stopGridAudio();
-    else startGridAudio();
+    else await startGridAudio();
   }
 
   function updateLiveAudioControls() {
@@ -1766,7 +1782,7 @@
     state.liveAudioPlayer.start(source, state.liveVolume);
   }
 
-  function toggleLiveAudio() {
+  async function toggleLiveAudio() {
     if (state.liveAudioEnabled) {
       stopLiveAudio();
       return;
@@ -1776,6 +1792,7 @@
       el.liveVolume.value = String(state.liveVolume);
       saveSettings();
     }
+    if (!(await unlockAudioPlayback())) return;
     startLiveAudio();
   }
 
@@ -1866,11 +1883,27 @@
     }
   }
 
+  function nativeHlsAudioSupported() {
+    return Boolean(
+      el.audioMonitorPlayer?.canPlayType("application/vnd.apple.mpegurl") ||
+      el.audioMonitorPlayer?.canPlayType("application/x-mpegURL")
+    );
+  }
+
+  function audioMonitorSource() {
+    if (!state.audioMonitorCamera) return "";
+    const cameraId = state.audioMonitorCamera.optionValue;
+    if (nativeHlsAudioSupported() && state.client?.monitorHlsUrl) {
+      return state.client.monitorHlsUrl(cameraId);
+    }
+    return state.client?.monitorAudioUrl?.(cameraId) || "";
+  }
+
   async function playAudioMonitor(reload = false) {
     if (!state.audioMonitorActive || !state.audioMonitorCamera) return;
     const player = el.audioMonitorPlayer;
     if (reload || !player.src) {
-      const source = state.client?.monitorAudioUrl?.(state.audioMonitorCamera.optionValue);
+      const source = audioMonitorSource();
       if (!source) {
         state.audioMonitorStatus = "error";
         updateAudioMonitorControls();
@@ -1894,7 +1927,7 @@
       if (state.audioMonitorReconnectAttempts === 0) {
         showToast(
           "Audio monitor unavailable",
-          error?.message || "This browser could not play Blue Iris's native WAV audio stream.",
+          error?.message || "This browser could not play the Blue Iris audio stream.",
           "error"
         );
       }
@@ -1968,6 +2001,11 @@
     state.audioMonitorStatus = "loading";
     state.audioMonitorPausedByUser = false;
     state.audioMonitorReconnectAttempts = 0;
+    try {
+      if (navigator.audioSession) navigator.audioSession.type = "playback";
+    } catch {
+      // AudioSession is an optional hint; native media playback still works without it.
+    }
     updateAudioMonitorControls();
     updateAudioMonitorMediaSession();
     playAudioMonitor(true);
@@ -2127,7 +2165,6 @@
     bootstrap.Modal.getOrCreateInstance(el.cameraModal).show();
     updateLiveAudioControls();
     updateAudioMonitorControls();
-    if (state.liveVolume > 0 && !state.audioMonitorActive) startLiveAudio();
     loadPtzMetadata(camera);
   }
 
@@ -3339,8 +3376,7 @@
     el.liveVolume.addEventListener("input", () => {
       state.liveVolume = clampVolume(el.liveVolume.value, state.liveVolume);
       if (state.liveVolume <= 0) stopLiveAudio();
-      else if (!state.liveAudioEnabled) startLiveAudio();
-      else {
+      else if (state.liveAudioEnabled) {
         state.liveAudioPlayer?.setVolume(state.liveVolume);
         updateLiveAudioControls();
       }
@@ -3431,7 +3467,8 @@
     updateRecordingPlayButton();
     updateRecordingAudioControls();
     restoreCachedSession().then((restored) => {
-      if (!restored) el.usernameInput.focus();
+      const touchFirst = window.matchMedia?.("(pointer: coarse)").matches || navigator.maxTouchPoints > 0;
+      if (!restored && !touchFirst) el.usernameInput.focus();
     });
   }
 

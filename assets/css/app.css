@@ -3858,6 +3858,12 @@ body.media-fullscreen-open {
     font-size: 14px;
   }
 
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
   .login-screen {
     display: block;
     background: #090e16;

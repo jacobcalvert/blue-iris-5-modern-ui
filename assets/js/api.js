@@ -463,6 +463,13 @@
       });
     }
 
+    monitorHlsUrl(camera) {
+      return this.mediaUrl(`h264/${encodeURIComponent(camera)}/temp.m3u8`, {
+        audio: 1,
+        cache: 1
+      });
+    }
+
     hlsUrl(camera, profile = {}, cameraInfo = {}) {
       return this.mediaUrl(
         `h264/${encodeURIComponent(camera)}/temp.m3u8`,
